@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Caslon+Text:wght@400;500&display=swap');
+:root{--bg:#f8f6f3;--surface:#fffdfa;--ink:#181512;--muted:#756d67;--line:#ddd5ce;--soft:#eee9e3;--accent:#cfc4bd}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 12% 8%,rgba(255,255,255,.78),rgba(255,255,255,0) 34%),linear-gradient(135deg,#f8f6f3 0%,#f0e9e3 54%,#e8ddd6 100%);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:16px;line-height:1.6}body.lock{overflow:hidden}a{color:inherit;text-decoration:none}button,input{font:inherit}button{cursor:pointer}img{display:block;max-width:100%}.wrap{width:min(1280px,calc(100% - 40px));margin:auto}.serif{font-family:'Libre Caslon Text',serif}.caps{text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:700}.muted{color:var(--muted)}
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(255,253,250,.88);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid rgba(221,213,206,.5)}.nav-inner{height:76px;display:flex;align-items:center;justify-content:space-between;position:relative}.nav-links{display:flex;gap:28px}.nav-links a{transition:opacity .2s,transform .2s}.nav-links a:hover{opacity:.6;transform:translateY(-1px)}.brand{position:absolute;left:50%;transform:translateX(-50%);font:32px/1 'Libre Caslon Text',serif;letter-spacing:-.05em}.nav-actions{display:flex;gap:16px;align-items:center}.icon-btn{border:0;background:none;padding:5px;position:relative;transition:transform .2s}.icon-btn:active{transform:scale(.9)}.badge{position:absolute;right:-4px;top:-5px;background:var(--ink);color:white;border-radius:50%;width:17px;height:17px;font-size:10px;display:none;align-items:center;justify-content:center}.menu-btn{display:none}.mobile-menu{display:none}
+main{padding:130px 0 100px}.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:60px;align-items:center;min-height:70vh}.hero h1{font-size:clamp(46px,7vw,92px);line-height:1.02;font-weight:400;margin:0 0 24px}.hero p{max-width:580px;font-size:18px;color:var(--muted)}.btn{display:inline-flex;align-items:center;justify-content:center;padding:13px 24px;border:1px solid var(--ink);border-radius:999px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;transition:transform .25s,opacity .25s,background .25s,color .25s}.btn.dark{background:var(--ink);color:white}.btn:hover{transform:translateY(-2px);opacity:.9}.btn:active{transform:scale(.97)}.hero-image{aspect-ratio:2/3;overflow:hidden;border-radius:10px;background:var(--soft)}.hero-image img{width:100%;height:100%;object-fit:cover}
+.section{margin-top:100px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:28px}.section h2{font:40px/1.15 'Libre Caslon Text',serif;margin:0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;transition:transform .3s,box-shadow .3s}.card:hover{transform:translateY(-5px);box-shadow:0 15px 45px rgba(24,21,18,.08)}.card:active{transform:scale(.988)}.card-cover{display:block;aspect-ratio:2/3;overflow:hidden;background:var(--soft)}.card-cover img{width:100%;height:100%;object-fit:cover;transition:transform .5s}.card:hover .card-cover img{transform:scale(1.03)}.look-cover-button{display:block;width:100%;padding:0;border:0;background:none;text-align:left}.card-body{padding:18px}.card-body h3{font:24px/1.2 'Libre Caslon Text',serif;margin:0 0 6px}.product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}.product-img{background:var(--soft);overflow:hidden}.product-img img{width:100%;height:auto;max-height:600px;object-fit:contain;cursor:zoom-in;transition:transform .45s}.product-img:hover img{transform:scale(1.025)}.product-body{padding:16px}.product-title{font-size:18px;font-weight:600;margin:0 0 5px}.price{font-size:17px;font-weight:600}.board{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.1em}.product-actions{display:flex;gap:8px;margin-top:14px}.product-actions .btn{flex:1;padding:11px 12px}.save{width:44px;border:1px solid var(--line);background:white;border-radius:999px;transition:transform .2s,background .2s,color .2s}.save.saved{background:var(--ink);color:white}.save:active{transform:scale(.9)}
+.filters{display:flex;gap:10px;overflow:auto;padding-bottom:8px;margin:25px 0}.filter{white-space:nowrap;border:1px solid var(--line);background:transparent;border-radius:999px;padding:9px 17px;transition:.2s}.filter:hover,.filter.active{background:var(--ink);border-color:var(--ink);color:white}.empty{padding:80px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}.search{width:min(100%,520px);padding:14px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);outline:none}.search:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(24,21,18,.06)}
+.look-detail{display:none}.look-detail.open{display:block;animation:muiroFadeUp .45s cubic-bezier(.16,1,.3,1)}.detail-top{display:grid;grid-template-columns:minmax(280px,520px) 1fr;gap:55px;align-items:start}.detail-cover{aspect-ratio:2/3;overflow:hidden;border-radius:10px;background:var(--soft)}.detail-cover img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}.detail-copy h1{font:clamp(42px,6vw,72px)/1.05 'Libre Caslon Text',serif;margin:0 0 12px}.pieces{margin-top:70px}.pieces h2{font:36px/1.15 'Libre Caslon Text',serif;margin:0}.piece-count{font-size:13px}
+.inspector{position:fixed;inset:0;background:rgba(12,10,9,.93);z-index:200;display:none;align-items:center;justify-content:center;padding:30px;opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s}.inspector.open{display:flex}.inspector.visible{opacity:1;visibility:visible}.inspector-stage{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:none;cursor:grab}.inspector-stage.dragging{cursor:grabbing}.inspector-image{max-width:94vw;max-height:90vh;width:auto;height:auto;object-fit:contain;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;transform-origin:center center;transition:transform .18s ease-out}.inspector-close{position:absolute;top:18px;right:18px;width:44px;height:44px;border:0;border-radius:50%;background:white;color:var(--ink);z-index:2;font-size:24px;line-height:1}.inspector-close:active{transform:scale(.92)}
+footer{padding:70px 0;background:#eee9e3;margin-top:80px}.footer-inner{display:flex;justify-content:space-between;gap:30px;align-items:center}.footer-links{display:flex;gap:24px;flex-wrap:wrap}.footer-links a:hover{opacity:.6}
+/* Optional MUIRO backgrounds. These never replace the hero image. */
+.muiro-gradient-bg{background:radial-gradient(circle at 20% 15%,rgba(255,255,255,.9),rgba(255,255,255,0) 44%),linear-gradient(135deg,#f8f6f3 0%,#eee7e1 52%,#e7ddd6 100%)}
+.muiro-image-bg{background-image:linear-gradient(rgba(24,21,18,.12),rgba(24,21,18,.12)),url('YOUR-BACKGROUND-IMAGE-URL');background-size:cover;background-position:center;background-repeat:no-repeat}
+.muiro-reveal{opacity:0;transform:translateY(18px);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1)}.muiro-reveal.is-visible{opacity:1;transform:none}
+@keyframes muiroFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.grid .card{animation:muiroFadeUp .55s cubic-bezier(.16,1,.3,1) both}.grid .card:nth-child(2){animation-delay:.05s}.grid .card:nth-child(3){animation-delay:.1s}.grid .card:nth-child(4){animation-delay:.15s}.grid .card:nth-child(5){animation-delay:.2s}.grid .card:nth-child(6){animation-delay:.25s}
+@media(max-width:900px){.nav-links{display:none}.menu-btn{display:block}.grid{grid-template-columns:repeat(2,1fr)}.product-grid{grid-template-columns:repeat(2,1fr)}.hero{grid-template-columns:1fr}.hero-image{max-width:520px;margin:auto}.detail-top{grid-template-columns:1fr}.detail-cover{max-width:520px}.footer-inner{flex-direction:column;text-align:center}}
+@media(max-width:600px){.wrap{width:min(100% - 24px,1280px)}.nav-inner{height:68px}.brand{font-size:28px}.mobile-menu{position:fixed;inset:0 0 0 auto;width:min(82vw,330px);background:var(--surface);z-index:80;padding:90px 28px;display:flex;flex-direction:column;gap:22px;transform:translateX(100%);transition:.3s;box-shadow:-20px 0 60px rgba(0,0,0,.12)}.mobile-menu.open{transform:translateX(0)}.mobile-menu a{font:28px 'Libre Caslon Text',serif}.mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:70}.mobile-overlay.open{display:block}main{padding-top:105px}.grid,.product-grid{grid-template-columns:1fr}.hero h1{font-size:50px}.section h2{font-size:34px}.detail-copy h1{font-size:46px}.inspector{padding:12px}.inspector-image{max-width:96vw;max-height:88vh}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.muiro-reveal{opacity:1;transform:none}.grid .card,.look-detail{animation:none}.card,.btn,.save,.icon-btn,.inspector,.inspector-image{transition:none!important}}
+/* =========================================================
+   MUIRO HERO IMAGE SLIDER
+   ========================================================= */
+
+.muir-hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--soft);
+}
+
+.muir-hero-slide {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+  object-position: center;
+
+  opacity: 0;
+  transform: scale(1.03);
+
+  transition:
+    opacity 1.4s ease,
+    transform 5.5s ease;
+
+  pointer-events: none;
+}
+
+.muir-hero-slide.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* First image fade-in */
+.muir-hero-slide.first-load {
+  animation: muirHeroIntro 1.6s ease forwards;
+}
+
+@keyframes muirHeroIntro {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .muir-hero-slide {
+    transition: none;
+    transform: none;
+  }
+
+  .muir-hero-slide.first-load {
+    animation: none;
+  }
+}
