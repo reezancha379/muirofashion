@@ -1,6 +1,8 @@
 {
+  "include": ["src", "build-static.ts", "vite.config.ts", "playwright.config.ts", "tests"],
   "compilerOptions": {
     "target": "ES2022",
+    "types": ["vite/client", "node"],
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",

@@ -60,21 +60,21 @@ export default function Navbar({ onAdminClick }: NavbarProps) {
               )}
             </button>
 
-            <button
+            {onAdminClick && <button
               onClick={onAdminClick}
               className="px-4 py-2 text-sm font-medium text-[#181512] border border-[#181512] rounded-full hover:bg-[#181512] hover:text-white transition-colors hidden md:block"
             >
               Admin
-            </button>
+            </button>}
 
             {/* Mobile Menu Button */}
-            <button
+            {onAdminClick && <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 text-[#181512]"
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            </button>}
           </div>
         </div>
 

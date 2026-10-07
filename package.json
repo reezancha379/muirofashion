@@ -5,14 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "build:static": "node --import tsx build-static.ts",
-    "start": "node dist/server.cjs",
-    "preview": "vite preview",
-    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "node --import tsx build-static.ts",
+    "build:static": "npm run build",
+    "start": "npm run preview",
+    "preview": "vite preview --outDir site --port 8889 --strictPort",
+    "clean": "node -e \"for(const dir of ['dist','site'])require('fs').rmSync(dir,{recursive:true,force:true})\"",
     "lint": "tsc --noEmit",
-    "test:client": "node --import tsx tests/client-e2e.test.ts",
-    "test:static": "node --import tsx tests/static-e2e.test.ts"
+    "test:client": "npm run test:static",
+    "test:static": "playwright test",
+    "test:artifact": "node --test tests/artifact.test.mjs",
+    "verify:static": "node scripts/verify-static.mjs site"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -27,16 +29,17 @@
     "vite": "^8.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.2",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
-    "typescript": "^7.0.2",
-    "@types/express": "^4.17.21",
-    "@types/qrcode": "^1.5.6"
+    "typescript": "^7.0.2"
   },
   "description": "Standalone affiliate fashion lookbook and content management site"
 }

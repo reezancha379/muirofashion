@@ -1,9 +1,11 @@
 MUIRO CONTENT SYSTEM
 
 DEPLOY
-1. Upload this folder to the existing Netlify project muirofashion.
-2. Keep the files at the site root.
-3. Do not delete the previous Netlify site until this version is verified.
+1. Run npm ci and npm run build:static, or let Netlify run its configured build.
+2. Publish only the generated site/ directory. Never upload the repository root.
+3. Inspect site/index.html and run npm run verify:static before publishing.
+4. Verify the new live deploy serves hashed assets and React renders.
+5. Do not delete the previous Netlify site until this version is verified.
 
 EDIT PRODUCTS
 Open products.js. Add or edit one product object at a time.

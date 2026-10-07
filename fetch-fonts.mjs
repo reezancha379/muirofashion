@@ -1,5 +1,5 @@
 /**
- * Downloads the Google Fonts used by index.html into public/fonts/ and writes
+ * Downloads the Google Fonts used by the client into src/fonts/ and writes
  * a local fonts.css, so the site has no external stylesheet dependency.
  *
  *   node fetch-fonts.mjs
@@ -13,7 +13,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const outDir = path.join(root, 'public', 'fonts');
+const outDir = path.join(root, 'src', 'fonts');
 const CSS_URL =
   'https://fonts.googleapis.com/css2' +
   '?family=DM+Sans:ital,opsz,wght@0,9..40,300..900;1,9..40,300..900' +
@@ -72,9 +72,7 @@ async function main() {
       }
       const bin = await fetch(url, { headers: { 'User-Agent': UA } });
       if (!bin.ok) {
-        console.warn(`  skip (HTTP ${bin.status}) ${url}`);
-        skipped++;
-        continue;
+        throw new Error(`font fetch failed: HTTP ${bin.status}`);
       }
       const buf = Buffer.from(await bin.arrayBuffer());
       fs.writeFileSync(path.join(outDir, filename), buf);
@@ -93,7 +91,7 @@ async function main() {
   const faces = (finalCss.match(/@font-face/g) || []).length;
   console.log(`[fetch-fonts] ${kept} files, ${faces} @font-face rules, ${(bytes / 1024).toFixed(0)} KB`);
   console.log(`[fetch-fonts] skipped ${skipped} non-latin/other segments`);
-  console.log(`[fetch-fonts] -> public/fonts/fonts.css`);
+  console.log(`[fetch-fonts] -> src/fonts/fonts.css`);
 
   if (faces === 0) {
     console.error('[fetch-fonts] ERROR: no font faces written');
