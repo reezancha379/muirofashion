@@ -1,0 +1,11 @@
+node_modules/
+node_modules_broken/
+dist/
+site/
+public/uploads/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vscode/

@@ -1,0 +1,42 @@
+# MUIRO - Netlify configuration
+#
+# The site is a pure static build: `npm run build:static` produces ./site/,
+# which Netlify publishes. No server, no serverless functions, no environment
+# secrets are required for the storefront to render.
+#
+# Deploy: drag the `site/` folder into https://app.netlify.com/drop ,
+# or connect this repo and Netlify will run the build command below.
+
+[build]
+  command = "npm run build:static"
+  publish = "site"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Single-page app: any path that is not a real file serves index.html so
+# client-side routes (/shop, /analytics, ?view=admin) resolve on reload.
+# build-static.ts also writes this into site/_redirects; it is repeated here
+# so it holds even if the folder is published without it.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Strict MIME checking rejects module scripts served as octet-stream, so the
+# hashed bundles must declare their type explicitly.
+[[headers]]
+  for = "/assets/*.js"
+  [headers.values]
+    Content-Type = "text/javascript; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
+
+[[headers]]
+  for = "/assets/*.css"
+  [headers.values]
+    Content-Type = "text/css; charset=utf-8"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
