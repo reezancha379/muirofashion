@@ -1,8 +1,10 @@
 # MUIRO — Review Handoff
 
-**Status:** The user authorized pushing the verified changes to `main` for review. The push is intended to trigger the existing Netlify Git integration; it does not create a new site or domain, and no separate Netlify deploy command is being used.
+**Status:** Commit `982811b` has been pushed to `main`. The push did not trigger Netlify automatically, so the already-built static artifact was published to the same existing site. The Netlify deploy is ready, and the existing live alias returns the updated site. No new site or domain was created.
 
-The repository remains `https://github.com/reezancha379/muirofashion.git`. The requested site name remains exactly **MUIRO**. The existing canonical origin is `https://muirofashion.netlify.app/`.
+**Review the live site:** [MUIRO — muirofashion.netlify.app](https://muirofashion.netlify.app/)
+
+The repository remains `https://github.com/reezancha379/muirofashion.git`. The requested site name remains exactly **MUIRO**, and the existing canonical origin is `https://muirofashion.netlify.app/`.
 
 ## Visual direction and review image
 
@@ -21,8 +23,9 @@ The build provides the exact browser title `MUIRO`, canonical metadata for the e
 ## Verification performed
 
 - `npm run lint` — passed.
+- `npm run test:client` — passed against an isolated local server using a disposable test PIN.
 - `npm run test:snapshot` — passed, including the public field whitelist and URL validation.
-- `npm run build:static` — passed using the current public Supabase snapshot.
+- `npm run build` and `npm run build:static` — passed.
 - `npm run test:static` — passed, including metadata, discovery files, genuine 404 handling, static visitor reads, and no visitor-side API calls.
 - `npm run test:integration` — passed against isolated temporary data, including category create/rename propagation/deletion protection, image upload, image-alt create/update, and cleanup.
 - Supabase Edge Function transpilation and `git diff --check` — passed.
@@ -31,10 +34,10 @@ These are local checks. The earlier Lighthouse lab run measured Performance 76, 
 
 ## Supabase readiness boundary
 
-The existing Supabase project `muiro database` is healthy and the public snapshot endpoint returns HTTP 200. The prior setup pass reported the private-state, rate-limit, and privilege-hardening migrations applied. However, the latest Edge Function listing returned no deployed functions, so `muiro-api` is not live. Consequently, the production Owner Studio’s sign-in, CRUD, and image-upload operations cannot be considered ready to test until the function is deployed and its server-side secrets are configured.
+The existing Supabase project `muiro database` is healthy and the public snapshot endpoint returns HTTP 200. The prior setup pass reported the private-state, rate-limit, and privilege-hardening migrations applied. However, the latest Edge Function listing returned no deployed functions, so `muiro-api` is not live. Consequently, the production Owner Studio’s sign-in, CRUD, and image-upload operations cannot be tested live until the function is deployed and its server-side secrets are configured.
 
-The function also expects `NETLIFY_BUILD_HOOK_URL` as a Supabase Function secret. Without it, the snapshot may be stored but the static storefront will not automatically rebuild after an admin edit; the app reports publication as pending. Never put the admin PIN, service-role key, or build-hook URL in browser-visible `VITE_*` variables.
+The function also expects `NETLIFY_BUILD_HOOK_URL` as a Supabase Function Secret. Without it, the snapshot may be stored but the static storefront will not automatically rebuild after an admin edit; the app reports publication as pending. Never put the admin PIN, service-role key, or build-hook URL in browser-visible `VITE_*` variables.
 
-## What to test after Netlify finishes the review build
+## What can be tested now
 
-You can review the live public design, categories, product cards, lookbook presentation, SEO title/metadata, and 404 behavior. For live admin tests, first deploy the checked-in `muiro-api` to the existing Supabase project with `verify_jwt = false`, configure the approved PIN and backend credentials only as Function Secrets, and configure a build hook on the existing Netlify site as `NETLIFY_BUILD_HOOK_URL`. Then verify sign-in, category CRUD and propagation, product/lookbook saves, image uploads, snapshot publication, and the automatic Netlify rebuild.
+You can review the live public design, categories, product cards, lookbook presentation, SEO title/metadata, and 404 behavior at the existing Netlify URL above. Live admin tests require deploying the checked-in `muiro-api` to the existing Supabase project with `verify_jwt = false`, configuring the approved PIN and backend credentials only as Function Secrets, and configuring a build hook on the existing Netlify site as `NETLIFY_BUILD_HOOK_URL`. Then test sign-in, category CRUD and propagation, product/lookbook saves, image uploads, snapshot publication, and the automatic Netlify rebuild.
