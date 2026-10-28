@@ -239,11 +239,22 @@ export const api = {
       }
       // Capture the server's reason so the UI can surface it instead of
       // throwing a generic message.
-      if (data?.error) lastVerifyError = data.error;
+      if (data?.error) {
+        lastVerifyError = data.error;
+      } else if (data?.message) {
+        lastVerifyError = data.message;
+      } else if (res.status === 404) {
+        lastVerifyError = 'The backend API function was not found (HTTP 404). Please ensure the muiro-api Edge Function is deployed in Supabase.';
+      } else if (res.status === 503) {
+        lastVerifyError = 'Backend service is unavailable (HTTP 503). Please verify Supabase function secrets (e.g. MUIRO_ADMIN_PIN).';
+      } else if (!res.ok) {
+        lastVerifyError = `Authentication request returned HTTP ${res.status}.`;
+      }
       // No offline fallback: the server is the only authority.
       return false;
-    } catch {
+    } catch (err: any) {
       // Network unavailable -- never accept a credential offline.
+      lastVerifyError = `Could not connect to authentication service (${err?.message || 'network error'}).`;
       return false;
     }
   },

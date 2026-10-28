@@ -1,4 +1,4 @@
-project_id = "muiro-database"
+project_id = "apbuobhhaczrruovfkdu"
 
 [functions.muiro-api]
 verify_jwt = false
