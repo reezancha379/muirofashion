@@ -35,7 +35,10 @@
       "pieces": [
         "p2-1",
         "p2-2",
-        "p2-3"
+        "p2-3",
+        "p-1793194332240-1999c583",
+        "p-1793194329233-61b39779",
+        "p-1793194326303-3c235160"
       ],
       "featured": true,
       "isNewlyAdded": true,
@@ -388,5 +391,33 @@
       "isActive": true,
       "order": 4
     }
-  ]
+  ],
+  "testimonials": [],
+  "settings": {
+    "aboutTitle": "About MUIRO & Our Editorial Vision",
+    "aboutSubtitle": "Bridging the gap between aesthetic moodboards and verified, direct shoppable pieces.",
+    "aboutStory": "MUIRO was created out of a simple frustration: discovering captivating outfit lookbooks across Pinterest and Instagram, only to hit dead-ends, low-grade dupes, or mysterious unlinked garments. We deconstruct every aesthetic lookbook into individual, wearable wardrobe pieces and connect you directly with authenticated retail merchants—including Amazon Associates, Revolve, and Nordstrom. Every piece is vetted for fit, fabric quality, and transparent zero-markup pricing.",
+    "affiliateDisclosure": "Some links are affiliate links. Qualifying purchases may earn MUIRO a commission at no extra cost to you.",
+    "seoTitle": "MUIRO",
+    "seoDescription": "Explore MUIRO fashion lookbooks and outfit ideas, discover the products featured in each edit, and shop through direct links to retail partners.",
+    "seoKeywords": "MUIRO, fashion lookbooks, outfit ideas, shoppable fashion, curated style",
+    "ogImage": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80",
+    "aboutPillars": [
+      {
+        "title": "Direct Merchant Verification",
+        "desc": "Every listed garment links directly to verified authentic merchant partners with authentic return policies and direct pricing.",
+        "icon": "ShieldCheck"
+      },
+      {
+        "title": "Zero-Markup Transparency",
+        "desc": "Some links are affiliate links. Qualifying purchases may earn MUIRO a commission at no extra cost to you.",
+        "icon": "Sparkles"
+      },
+      {
+        "title": "Garment Fabric Zoom Inspector",
+        "desc": "Interactive high-resolution fabric and weave zoom inspector allows you to inspect garments up close before clicking through to purchase.",
+        "icon": "Eye"
+      }
+    ]
+  }
 }

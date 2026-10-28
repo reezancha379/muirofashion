@@ -12,6 +12,8 @@ interface SnapshotData {
   lookbooks: Lookbook[];
   products: any[];
   heroSlides: any[];
+  testimonials: any[];
+  settings: any;
 }
 
 function generateSitemap(snapshotData: SnapshotData) {
@@ -55,7 +57,9 @@ async function runStaticPipeline() {
   let snapshotData: SnapshotData = {
     lookbooks: [],
     products: [],
-    heroSlides: []
+    heroSlides: [],
+    testimonials: [],
+    settings: {}
   };
 
   try {
@@ -65,7 +69,9 @@ async function runStaticPipeline() {
       snapshotData = {
         lookbooks: data.lookbooks || [],
         products: data.products || [],
-        heroSlides: data.heroSlides || []
+        heroSlides: data.heroSlides || [],
+        testimonials: data.testimonials || [],
+        settings: data.settings || {}
       };
       console.log(`[build-static] Loaded snapshot: ${snapshotData.lookbooks.length} lookbooks, ${snapshotData.products.length} products`);
     }
@@ -78,7 +84,9 @@ async function runStaticPipeline() {
       snapshotData = {
         lookbooks: seed.lookbooks || [],
         products: seed.products || [],
-        heroSlides: seed.heroSlides || []
+        heroSlides: seed.heroSlides || [],
+        testimonials: seed.testimonials || [],
+        settings: seed.settings || {}
       };
     }
   }
