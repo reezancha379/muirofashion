@@ -4,21 +4,22 @@ import crypto from 'crypto';
 // Persisted JSON store: lookbooks, products, tracking, and (hashed) credentials.
 import { hashPin, isHashedPin, verifyPin, generateSessionSecret, generateTotpSecret } from '../auth/auth';
 
-/**
- * The original hardcoded factory TOTP key. It shipped in the public browser
- * bundle (src/lib/totp.ts), so it must be treated as compromised and rotated
- * whenever it is found in the store.
- */
-const LEAKED_FACTORY_SECRET = 'MUIROAUTHENTICATOR234567SECURE';
-import { Product, Lookbook, Testimonial, ClickEvent, SiteSettings, HeroSlide, AffiliateProgram, Merchant } from '../../src/types';
+import { Product, ProductCategory, Lookbook, Testimonial, ClickEvent, SiteSettings, HeroSlide, AffiliateProgram, Merchant } from '../../src/types';
 
 // Persistence location. Defaults to <cwd>/data (so each installation keeps its
 // own store), but MUIRO_DATA_DIR overrides it — used by tests / alternate
 // deployments that must touch a throwaway store instead of the live one.
+const HAS_CUSTOM_DATA_DIR = Boolean(process.env.MUIRO_DATA_DIR);
 const DATA_DIR = process.env.MUIRO_DATA_DIR
   ? path.resolve(process.env.MUIRO_DATA_DIR)
   : path.join(process.cwd(), 'data');
-const DB_FILE = path.join(DATA_DIR, 'store.json');
+const SEED_FILE = path.join(DATA_DIR, 'store.json');
+// In a normal checkout, secrets and future local analytics belong in an ignored
+// runtime file; store.json remains a clean, content-only seed. Tests keep using
+// their explicit MUIRO_DATA_DIR/store.json file.
+const DB_FILE = HAS_CUSTOM_DATA_DIR
+  ? SEED_FILE
+  : path.join(DATA_DIR, '.store.runtime.json');
 
 export const INITIAL_HERO_SLIDES: HeroSlide[] = [
   {
@@ -303,6 +304,9 @@ const INITIAL_LOOKBOOKS: Lookbook[] = [
   }
 ];
 
+const freshProducts = (): Product[] => INITIAL_PRODUCTS.map((product) => ({ ...product, clicks: 0 }));
+const freshLookbooks = (): Lookbook[] => INITIAL_LOOKBOOKS.map((look) => ({ ...look, views: 0, likes: 0 }));
+
 const INITIAL_TESTIMONIALS: Testimonial[] = [
   {
     id: "t1",
@@ -394,8 +398,48 @@ export const INITIAL_MERCHANTS: Merchant[] = [
   { id: 'merchant-nordstrom', name: 'Nordstrom', website: 'https://www.nordstrom.com/', affiliateProgramId: 'program-nordstrom', status: 'active' }
 ];
 
+function categorySlug(name: string): string {
+  return name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+function deriveCategories(products: Product[], existing: ProductCategory[] = [], lookbooks: Lookbook[] = []): ProductCategory[] {
+  const categories: ProductCategory[] = [];
+  const names = new Set<string>();
+  const slugs = new Set<string>();
+  const add = (value: Partial<ProductCategory>) => {
+    const name = String(value.name || '').trim().slice(0, 60);
+    const key = name.toLocaleLowerCase();
+    if (!name || names.has(key)) return;
+    const base = categorySlug(name) || 'category';
+    const candidate = String(value.slug || base).trim().toLowerCase();
+    const safeCandidate = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(candidate) && candidate.length <= 64 ? candidate : base;
+    let slug = safeCandidate;
+    let suffix = 2;
+    while (slugs.has(slug)) slug = `${safeCandidate}-${suffix++}`;
+    const timestamp = new Date(0).toISOString();
+    const createdAt = typeof value.createdAt === 'string' ? value.createdAt.slice(0, 40) : timestamp;
+    categories.push({
+      id: String(value.id || `category-${slug}`).slice(0, 100),
+      name,
+      slug,
+      description: String(value.description || '').trim().slice(0, 300),
+      createdAt,
+      updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt.slice(0, 40) : createdAt,
+    });
+    names.add(key);
+    slugs.add(slug);
+  };
+  for (const category of existing || []) if (category && typeof category === 'object') add(category);
+  for (const label of [...(products || []).map(product => product.category), ...(lookbooks || []).map(lookbook => lookbook.category)]) {
+    const name = String(label || '').trim();
+    if (name) add({ name });
+  }
+  return categories;
+}
+
 interface DbSchema {
   products: Product[];
+  categories?: ProductCategory[];
   lookbooks: Lookbook[];
   testimonials: Testimonial[];
   clicks: ClickEvent[];
@@ -410,6 +454,7 @@ interface DbSchema {
   sessionSecret?: string;
   authenticatorSecret?: string;
   authenticatorEnabled?: boolean;
+  authenticatorVersion?: number;
   affiliatePrograms?: AffiliateProgram[];
   merchants?: Merchant[];
 }
@@ -436,20 +481,40 @@ class DataStore {
       if (!fs.existsSync(DATA_DIR)) {
         fs.mkdirSync(DATA_DIR, { recursive: true });
       }
-      if (fs.existsSync(DB_FILE)) {
-        const raw = fs.readFileSync(DB_FILE, 'utf-8');
+      const sourceFile = fs.existsSync(DB_FILE)
+        ? DB_FILE
+        : !HAS_CUSTOM_DATA_DIR && fs.existsSync(SEED_FILE)
+          ? SEED_FILE
+          : null;
+      if (sourceFile) {
+        const raw = fs.readFileSync(sourceFile, 'utf-8');
         const parsed = JSON.parse(raw);
+        const seededContentOnly = sourceFile === SEED_FILE && sourceFile !== DB_FILE;
+        const parsedProducts = Array.isArray(parsed.products) ? parsed.products : freshProducts();
+        const parsedLookbooks = Array.isArray(parsed.lookbooks) ? parsed.lookbooks : freshLookbooks();
+        const categories = deriveCategories(parsedProducts, Array.isArray(parsed.categories) ? parsed.categories : [], parsedLookbooks);
+        const categoryMigrationNeeded = JSON.stringify(categories) !== JSON.stringify(parsed.categories || []);
         // Spread first so that every persisted field survives a restart.
         // (Rebuilding field-by-field used to drop authenticatorSecret and
         // authenticatorEnabled, silently reverting a paired Google
         // Authenticator secret to the default on every boot.)
         const merged: DbSchema = {
           ...parsed,
-          products: parsed.products || INITIAL_PRODUCTS,
-          lookbooks: parsed.lookbooks || INITIAL_LOOKBOOKS,
-          testimonials: parsed.testimonials || INITIAL_TESTIMONIALS,
-          clicks: parsed.clicks || this.generateSeedClicks(),
-          impressions: parsed.impressions || 14850,
+          products: parsedProducts.map((product: Product) => ({
+            ...product,
+            clicks: seededContentOnly ? 0 : Number(product.clicks) || 0,
+          })),
+          lookbooks: parsedLookbooks.map((look: Lookbook) => ({
+            ...look,
+            views: seededContentOnly ? 0 : Number(look.views) || 0,
+            likes: seededContentOnly ? 0 : Number(look.likes) || 0,
+          })),
+          categories,
+          testimonials: Array.isArray(parsed.testimonials) ? parsed.testimonials : INITIAL_TESTIMONIALS,
+          clicks: seededContentOnly ? [] : (Array.isArray(parsed.clicks) ? parsed.clicks : []),
+          impressions: seededContentOnly || !Number.isFinite(parsed.impressions)
+            ? 0
+            : Math.max(0, Number(parsed.impressions)),
           settings: parsed.settings || DEFAULT_SETTINGS,
           heroSlides: parsed.heroSlides && parsed.heroSlides.length > 0 ? parsed.heroSlides : INITIAL_HERO_SLIDES,
           adminPin: parsed.adminPin || hashPin(getBootstrapAdminPin()),
@@ -458,11 +523,12 @@ class DataStore {
               ? parsed.adminPinLength
               : String(parsed.adminPin || getBootstrapAdminPin()).length,
           sessionSecret: parsed.sessionSecret || generateSessionSecret(),
+          authenticatorVersion: parsed.authenticatorVersion,
           affiliatePrograms: parsed.affiliatePrograms?.length ? parsed.affiliatePrograms : INITIAL_AFFILIATE_PROGRAMS,
           merchants: parsed.merchants?.length ? parsed.merchants : INITIAL_MERCHANTS,
         };
 
-        if (this.migratePinAtRest(merged)) {
+        if (this.migratePinAtRest(merged) || categoryMigrationNeeded) {
           // Persist immediately so credential migrations leave disk.
           this.persist(merged);
         }
@@ -473,16 +539,20 @@ class DataStore {
       console.warn('Failed to read db.json, using defaults', err);
     }
     const initial: DbSchema = {
-      products: INITIAL_PRODUCTS,
-      lookbooks: INITIAL_LOOKBOOKS,
+      products: freshProducts(),
+      categories: deriveCategories(freshProducts(), [], freshLookbooks()),
+      lookbooks: freshLookbooks(),
       testimonials: INITIAL_TESTIMONIALS,
-      clicks: this.generateSeedClicks(),
-      impressions: 14850,
+      clicks: [],
+      impressions: 0,
       settings: DEFAULT_SETTINGS,
       heroSlides: INITIAL_HERO_SLIDES,
       adminPin: hashPin(getBootstrapAdminPin()),
       adminPinLength: getBootstrapAdminPin().length,
       sessionSecret: generateSessionSecret(),
+      authenticatorSecret: generateTotpSecret(),
+      authenticatorEnabled: true,
+      authenticatorVersion: 2,
       affiliatePrograms: INITIAL_AFFILIATE_PROGRAMS,
       merchants: INITIAL_MERCHANTS
     };
@@ -511,13 +581,12 @@ class DataStore {
       db.sessionSecret = generateSessionSecret();
       changed = true;
     }
-    // SECURITY: the original factory authenticator key was a fixed literal that
-    // was also compiled into the browser bundle, so anyone holding the
-    // downloaded JS could mint a valid login code for it. Rotate it once, at
-    // rest, to a per-install random value. Existing device pairings must be
-    // re-scanned from the admin panel after this runs.
-    if (!db.authenticatorSecret || db.authenticatorSecret === LEAKED_FACTORY_SECRET) {
+    // Rotate unversioned legacy authenticator state to a per-install random
+    // value once. Existing device pairings must be re-scanned after migration.
+    if (!db.authenticatorSecret || db.authenticatorVersion !== 2) {
       db.authenticatorSecret = generateTotpSecret();
+      db.authenticatorEnabled = true;
+      db.authenticatorVersion = 2;
       changed = true;
     }
     return changed;
@@ -642,6 +711,7 @@ class DataStore {
   public addLookbook(lookbook: Omit<Lookbook, 'id' | 'views' | 'likes'>): Lookbook {
     const newLook: Lookbook = {
       ...lookbook,
+      category: this.ensureProductCategory(lookbook.category),
       id: `look-${Date.now()}`,
       views: 0,
       likes: 0
@@ -654,7 +724,9 @@ class DataStore {
   public updateLookbook(id: string, updates: Partial<Lookbook>): Lookbook | null {
     const index = this.data.lookbooks.findIndex(l => l.id === id);
     if (index === -1) return null;
-    this.data.lookbooks[index] = { ...this.data.lookbooks[index], ...updates };
+    const safeUpdates = { ...updates };
+    if (Object.prototype.hasOwnProperty.call(safeUpdates, 'category')) safeUpdates.category = this.ensureProductCategory(safeUpdates.category || 'Fashion');
+    this.data.lookbooks[index] = { ...this.data.lookbooks[index], ...safeUpdates };
     this.persist();
     return this.data.lookbooks[index];
   }
@@ -669,6 +741,76 @@ class DataStore {
     return false;
   }
 
+  // Managed product/lookbook categories.
+  public getCategories(): ProductCategory[] {
+    return deriveCategories(this.data.products, this.data.categories || [], this.data.lookbooks);
+  }
+
+  public addCategory(input: Pick<ProductCategory, 'name' | 'slug' | 'description'>): ProductCategory {
+    const name = String(input.name || '').trim();
+    const slug = String(input.slug || categorySlug(name)).trim().toLowerCase();
+    const description = String(input.description || '').trim();
+    if (!name || name.length > 60) throw new Error('Category name must be 1–60 characters.');
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 64) throw new Error('Category slug must contain lowercase letters, numbers, and hyphens only.');
+    if (description.length > 300) throw new Error('Category description must be 300 characters or fewer.');
+    const existing = this.getCategories();
+    if (existing.some(category => category.name.toLocaleLowerCase() === name.toLocaleLowerCase())) throw new Error('A category with this name already exists.');
+    if (existing.some(category => category.slug === slug)) throw new Error('A category with this slug already exists.');
+    const now = new Date().toISOString();
+    const created: ProductCategory = { id: `category-${crypto.randomBytes(6).toString('hex')}`, name, slug, description, createdAt: now, updatedAt: now };
+    this.data.categories = [...existing, created];
+    this.persist();
+    return created;
+  }
+
+  public updateCategory(id: string, updates: Partial<Pick<ProductCategory, 'name' | 'slug' | 'description'>>): ProductCategory | null {
+    const categories = this.getCategories();
+    const index = categories.findIndex(category => category.id === id);
+    if (index < 0) return null;
+    const current = categories[index];
+    const name = updates.name === undefined ? current.name : String(updates.name).trim();
+    const slug = updates.slug === undefined ? current.slug : String(updates.slug).trim().toLowerCase();
+    const description = updates.description === undefined ? current.description : String(updates.description).trim();
+    if (!name || name.length > 60) throw new Error('Category name must be 1–60 characters.');
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 64) throw new Error('Category slug must contain lowercase letters, numbers, and hyphens only.');
+    if (description.length > 300) throw new Error('Category description must be 300 characters or fewer.');
+    if (categories.some(category => category.id !== id && category.name.toLocaleLowerCase() === name.toLocaleLowerCase())) throw new Error('A category with this name already exists.');
+    if (categories.some(category => category.id !== id && category.slug === slug)) throw new Error('A category with this slug already exists.');
+    const updated: ProductCategory = { ...current, name, slug, description, updatedAt: new Date().toISOString() };
+    categories[index] = updated;
+    if (name !== current.name) {
+      const previousName = current.name.trim().toLocaleLowerCase();
+      this.data.products = this.data.products.map(product => product.category.trim().toLocaleLowerCase() === previousName ? { ...product, category: name } : product);
+      this.data.lookbooks = this.data.lookbooks.map(lookbook => lookbook.category.trim().toLocaleLowerCase() === previousName ? { ...lookbook, category: name } : lookbook);
+    }
+    this.data.categories = categories;
+    this.persist();
+    return updated;
+  }
+
+  public deleteCategory(id: string): boolean {
+    const category = this.getCategories().find(item => item.id === id);
+    if (!category || this.data.products.some(product => product.category.trim().toLocaleLowerCase() === category.name.trim().toLocaleLowerCase()) || this.data.lookbooks.some(lookbook => lookbook.category.trim().toLocaleLowerCase() === category.name.trim().toLocaleLowerCase())) return false;
+    this.data.categories = this.getCategories().filter(item => item.id !== id);
+    this.persist();
+    return true;
+  }
+
+  private ensureProductCategory(value: unknown): string {
+    const name = String(value || 'Fashion').trim() || 'Fashion';
+    const categories = this.getCategories();
+    const existing = categories.find(category => category.name.toLocaleLowerCase() === name.toLocaleLowerCase());
+    if (existing) return existing.name;
+    const base = categorySlug(name) || 'category';
+    let slug = base;
+    let suffix = 2;
+    const slugs = new Set(categories.map(category => category.slug));
+    while (slugs.has(slug)) slug = `${base}-${suffix++}`;
+    const now = new Date().toISOString();
+    this.data.categories = [...categories, { id: `category-${crypto.randomBytes(6).toString('hex')}`, name, slug, description: '', createdAt: now, updatedAt: now }];
+    return name;
+  }
+
   // Products
   public getProducts(): Product[] {
     return this.data.products;
@@ -681,6 +823,7 @@ class DataStore {
   public addProduct(product: Omit<Product, 'id' | 'clicks'>): Product {
     const newProd: Product = {
       ...product,
+      category: this.ensureProductCategory(product.category),
       id: `p-${Date.now()}`,
       clicks: 0
     };
@@ -692,7 +835,9 @@ class DataStore {
   public updateProduct(id: string, updates: Partial<Product>): Product | null {
     const index = this.data.products.findIndex(p => p.id === id);
     if (index === -1) return null;
-    this.data.products[index] = { ...this.data.products[index], ...updates };
+    const safeUpdates = { ...updates };
+    if (Object.prototype.hasOwnProperty.call(safeUpdates, 'category')) safeUpdates.category = this.ensureProductCategory(safeUpdates.category || 'Fashion');
+    this.data.products[index] = { ...this.data.products[index], ...safeUpdates };
     this.persist();
     return this.data.products[index];
   }
@@ -1049,6 +1194,7 @@ class DataStore {
 
   public setAuthenticatorConfig(secret: string, enabled?: boolean): { secret: string; enabled: boolean } {
     this.data.authenticatorSecret = secret.trim().toUpperCase().replace(/[^A-Z2-7]/g, '') || generateTotpSecret();
+    this.data.authenticatorVersion = 2;
     if (enabled !== undefined) {
       this.data.authenticatorEnabled = Boolean(enabled);
     }
@@ -1059,6 +1205,7 @@ class DataStore {
   public resetAuthenticatorConfig(): { secret: string; enabled: boolean } {
     // A "factory reset" issues a never-before-seen key, never a fixed literal.
     this.data.authenticatorSecret = generateTotpSecret();
+    this.data.authenticatorVersion = 2;
     this.data.authenticatorEnabled = true;
     this.persist();
     return this.getAuthenticatorConfig();
@@ -1066,16 +1213,18 @@ class DataStore {
 
   public resetDemo() {
     this.data = {
-      products: INITIAL_PRODUCTS,
-      lookbooks: INITIAL_LOOKBOOKS,
+      products: freshProducts(),
+      categories: deriveCategories(freshProducts(), [], freshLookbooks()),
+      lookbooks: freshLookbooks(),
       testimonials: INITIAL_TESTIMONIALS,
-      clicks: this.generateSeedClicks(),
-      impressions: 14850,
+      clicks: [],
+      impressions: 0,
       heroSlides: INITIAL_HERO_SLIDES,
       adminPin: hashPin(getBootstrapAdminPin()),
       adminPinLength: getBootstrapAdminPin().length,
       authenticatorSecret: generateTotpSecret(),
       authenticatorEnabled: true,
+      authenticatorVersion: 2,
       // A content reset must not log the owner out: rebuild the object with
       // the existing signing secret so every issued session token survives.
       // (This was previously documented as "preserved" but the field was

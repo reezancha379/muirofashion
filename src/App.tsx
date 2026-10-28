@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import { Lookbook, Product, Testimonial, SiteSettings, HeroSlide } from '@/types';
-import { api } from '@/lib/api';
+import { api, setAdminToken } from '@/lib/api';
 import { beginAffiliateNavigation } from '@/lib/affiliate';
 import { Navbar } from '@/components/layout/Navbar';
 import { Hero } from '@/components/sections/Hero';
@@ -48,6 +48,7 @@ export default function App() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [publicationPending, setPublicationPending] = useState(false);
 
   // Admin / Owner Security State (Admin is strictly hidden until 6s hold on MUIRO)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -221,6 +222,8 @@ export default function App() {
   };
 
   const handleLockAdmin = () => {
+    setPublicationPending(false);
+    setAdminToken(null);
     try {
       sessionStorage.removeItem('muiro_admin_auth');
     } catch {}
@@ -255,11 +258,17 @@ export default function App() {
       setAuthModalTarget(null);
       setCurrentView('home');
     };
+    const onPublicationPending = () => setPublicationPending(true);
+    const onPublicationSynced = () => setPublicationPending(false);
     window.addEventListener('muiro:unauthorized', onUnauthorized);
+    window.addEventListener('muiro:publication-pending', onPublicationPending);
+    window.addEventListener('muiro:publication-synced', onPublicationSynced);
 
     return () => {
       cancelled = true;
       window.removeEventListener('muiro:unauthorized', onUnauthorized);
+      window.removeEventListener('muiro:publication-pending', onPublicationPending);
+      window.removeEventListener('muiro:publication-synced', onPublicationSynced);
     };
   }, []);
 
@@ -373,7 +382,7 @@ export default function App() {
     lookbooks.length > 0 || products.length > 0 || testimonials.length > 0 || heroSlides.length > 0;
 
   return (
-    <div className="min-h-screen bg-white text-[#181512] font-casual selection:bg-[#181512] selection:text-white flex flex-col justify-between">
+    <div className="min-h-screen bg-paper text-ink font-casual selection:bg-crimson selection:text-white flex flex-col justify-between">
       {/* Top Navbar with Search, Filter & Secret MUIRO Hold Gateway */}
       <Navbar
         currentView={currentView}
@@ -399,6 +408,15 @@ export default function App() {
         }}
         activeFilterCount={activeFilterCount}
       />
+
+      {publicationPending && isAdminAuthenticated && (
+        <div role="status" aria-live="polite" className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-plum/20 border-l-4 border-l-crimson bg-white px-4 py-3 text-sm text-plum shadow-sm">
+            <p className="leading-snug">Your changes are saved in Supabase, but the public storefront rebuild is still pending. Check the Netlify build hook or trigger a deploy manually.</p>
+            <button type="button" onClick={() => setPublicationPending(false)} className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-crimson hover:bg-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-crimson">Dismiss</button>
+          </div>
+        </div>
+      )}
 
       <main className="flex-1">
         {/* Error / partial-refresh banner. Shown whenever a reload could not
@@ -919,8 +937,8 @@ export default function App() {
             </div>
           </div>
 
-          <div className="pt-8 text-center text-[11px] text-[#8c827a] leading-relaxed">
-            A quiet note from MUIRO: some of the pieces you discover here are linked to our retail partners. If you choose to shop through one of those links, we may receive a small commission — at no extra cost to you.
+          <div className="pt-8 text-center text-[11px] text-[#6B6569] leading-relaxed">
+            If you make a purchase through one of our links, MUIRO may earn a small commission at no extra cost to you.
           </div>
         </div>
       </footer>

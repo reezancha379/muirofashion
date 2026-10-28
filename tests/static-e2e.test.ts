@@ -1,11 +1,10 @@
 /**
  * Static-host E2E: proves the built site/ works with NO backend.
  *
- * Starts a file server that mimics Netlify (static files + SPA fallback that
- * answers unknown paths with index.html + 200, which is exactly the behaviour
- * that used to break API calls), then drives the REAL src/lib/api.ts against
- * it and checks the storefront reads fall back to content-snapshot.json while
- * writes report a clear error instead of failing cryptically.
+ * Starts a file server that mimics the static Netlify output (static files plus
+ * a custom 404 page for unknown paths), then drives the REAL src/lib/api.ts
+ * against it and checks the storefront reads fall back to content-snapshot.json
+ * while writes report a clear error instead of failing cryptically.
  *
  * Run:  node --import tsx static-e2e.test.ts
  */
@@ -24,8 +23,11 @@ const MIME: Record<string, string> = {
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2'
@@ -40,15 +42,15 @@ const mark = (ok: boolean, msg: string): void => {
 function startStaticServer(): Promise<http.Server> {
   const server = http.createServer((req, res) => {
     const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
-    let filePath = path.join(siteDir, urlPath);
-
-    // Netlify-like: any path that is not a real file falls back to index.html.
+    let status = 200;
+    let filePath = urlPath === '/' ? path.join(siteDir, 'index.html') : path.join(siteDir, urlPath);
     if (!filePath.startsWith(siteDir) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-      filePath = path.join(siteDir, 'index.html');
+      filePath = path.join(siteDir, '404.html');
+      status = 404;
     }
 
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    res.writeHead(status, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
     fs.createReadStream(filePath).pipe(res);
   });
   return new Promise((resolve) => server.listen(PORT, '127.0.0.1', () => resolve(server)));
@@ -80,6 +82,8 @@ const localStoragePolyfill = {
   location: { href: BASE + '/', origin: BASE, search: '', pathname: '/' },
   scrollTo: (): void => {}
 };
+const observedRequests: string[] = [];
+(globalThis as typeof globalThis & { __MUIRO_STATIC_PUBLIC__?: boolean }).__MUIRO_STATIC_PUBLIC__ = true;
 
 // Node's fetch needs absolute URLs; the browser resolves both '/abs' and
 // './rel' against the page origin. Mirror that so the client code under test
@@ -87,10 +91,10 @@ const localStoragePolyfill = {
 // snapshot with a relative './content-snapshot.json' path).
 const nativeFetch = globalThis.fetch.bind(globalThis) as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 (globalThis as unknown as { fetch: typeof nativeFetch }).fetch = (input, init) => {
-  if (typeof input === 'string') {
-    return nativeFetch(new URL(input, BASE + '/').href, init);
-  }
-  return nativeFetch(input, init);
+  const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+  const resolved = new URL(raw, BASE + '/');
+  observedRequests.push(resolved.pathname);
+  return nativeFetch(resolved.href, init);
 };
 
 async function main(): Promise<void> {
@@ -105,11 +109,25 @@ async function main(): Promise<void> {
     console.log('=== A. the static host behaves like Netlify ===\n');
     const health = await nativeFetch(`${BASE}/api/health`);
     const healthBody = await health.text();
-    mark(health.status === 200, `unknown path /api/health -> HTTP ${health.status} (SPA fallback)`);
-    mark(/^\s*</.test(healthBody), 'SPA fallback returns index.html, NOT JSON (proves a real API is absent)');
+    mark(health.status === 404, `unknown path /api/health -> HTTP ${health.status} (not a soft-404 homepage)`);
+    mark(healthBody.includes("couldn't find that page") && !healthBody.includes('content-snapshot.json'), 'unknown path returns the branded 404 page, not the storefront or an API response');
 
     const index = await nativeFetch(`${BASE}/`);
     const html = await index.text();
+    const canonical = (html.match(/<link rel="canonical" href="([^"]+)"/) || [])[1];
+    mark(/<title>MUIRO<\/title>/.test(html), 'browser tab title is exactly MUIRO');
+    const metaDescription = (html.match(/<meta name="description" content="([^"]+)"/) || [])[1];
+    mark(canonical === 'https://muirofashion.netlify.app/' && !!metaDescription, 'homepage ships a canonical URL and descriptive metadata in initial HTML');
+    mark(html.includes('property="og:url"') && html.includes('twitter:card') && html.includes('"@type": "WebSite"'), 'social preview tags and WebSite structured data are present');
+    mark(/<noscript>[\s\S]*?<h1>MUIRO Fashion Lookbooks<\/h1>[\s\S]*?<\/noscript>/.test(html), 'initial HTML includes a useful no-JavaScript editorial fallback');
+    const robots = await nativeFetch(`${BASE}/robots.txt`);
+    const robotsText = await robots.text();
+    mark(robots.status === 200 && robotsText.includes('Disallow: /api/') && robotsText.includes('https://muirofashion.netlify.app/sitemap.xml'), `robots.txt -> HTTP ${robots.status}, public crawling plus sitemap reference`);
+    const sitemap = await nativeFetch(`${BASE}/sitemap.xml`);
+    const sitemapText = await sitemap.text();
+    mark(sitemap.status === 200 && sitemapText.includes('<loc>https://muirofashion.netlify.app/</loc>'), `sitemap.xml -> HTTP ${sitemap.status}, canonical homepage only`);
+    const llms = await nativeFetch(`${BASE}/llms.txt`);
+    mark(llms.status === 200 && (await llms.text()).includes('# MUIRO'), `llms.txt -> HTTP ${llms.status}, factual public-site guide`);
     // The build uses base './' for drag-and-drop/Netlify compat, so the module
     // reference may be absolute (`/assets/…`) or relative (`./assets/…`).
     const jsRef = (html.match(/<script[^>]*src="((?:\/|\.\/)assets\/[^"]+\.js)"/) || [])[1];
@@ -123,8 +141,10 @@ async function main(): Promise<void> {
       const cssUrl = (cssRef || '').replace(/^\.\//, '');
       const css = await nativeFetch(`${BASE}/${cssUrl}`);
       mark((css.headers.get('content-type') || '').includes('text/css'), `stylesheet served as [${css.headers.get('content-type')}]`);
-      const fav = await nativeFetch(`${BASE}/favicon.png`);
-      mark(fav.status === 200, `favicon -> HTTP ${fav.status} (was 404 before)`);
+      const fav = await nativeFetch(`${BASE}/favicon.svg`);
+      const fav32 = await nativeFetch(`${BASE}/favicon-32.png`);
+      const apple = await nativeFetch(`${BASE}/apple-touch-icon.png`);
+      mark(fav.status === 200 && fav32.status === 200 && apple.status === 200, `M favicon set -> SVG ${fav.status}, 32px ${fav32.status}, touch ${apple.status}`);
       const font = await nativeFetch(`${BASE}/fonts/fonts.css`);
       const fontBody = await font.text();
       mark(font.status === 200 && fontBody.includes('@font-face'), `self-hosted fonts -> HTTP ${font.status} (${(fontBody.match(/@font-face/g) || []).length} faces, no googleapis request)`);
@@ -157,18 +177,31 @@ async function main(): Promise<void> {
     const settings = await api.getSettings();
     mark(typeof settings.aboutTitle === 'string' && settings.aboutTitle.length > 0, `getSettings() -> "${settings.aboutTitle}"`);
 
-    const stats = await api.getAnalytics();
-    mark(typeof stats.totalClicks === 'number', `getAnalytics() -> ${stats.totalClicks} clicks / ${stats.totalImpressions} impressions`);
+    const snapshotData = JSON.parse(fs.readFileSync(path.join(siteDir, 'content-snapshot.json'), 'utf-8'));
+    mark(!['stats', 'affiliatePrograms', 'merchants', 'clicks', 'impressions'].some((key) => key in snapshotData), 'public snapshot excludes analytics and admin-only collections');
+    mark(snapshotData.products.every((p: any) => p.clicks === 0) && snapshotData.lookbooks.every((l: any) => l.views === 0 && l.likes === 0), 'public product/lookbook analytics start at zero');
+    const heroPaths = snapshotData.heroSlides.map((slide: any) => slide.image);
+    mark(heroPaths.length > 0 && heroPaths.every((value: string) => /^\/hero-[1-4]\.webp$/.test(value)), 'public snapshot references optimized first-party hero WebP files');
+    const heroAsset = await nativeFetch(`${BASE}${heroPaths[0]}`);
+    mark(heroAsset.status === 200 && (heroAsset.headers.get('content-type') || '').includes('image/webp'), `optimized hero asset -> HTTP ${heroAsset.status} (${heroAsset.headers.get('content-type')})`);
 
-    // The product click path: no backend, so it must fall back to the raw URL.
-    const first = products[0];
-    let reachedMerchant = false;
+    let statsUnavailable = false;
     try {
-      await api.handleAffiliateClick(first.id, undefined, 'web_lookbook');
+      await api.getAnalytics();
     } catch {
-      reachedMerchant = true; // rejected -> component falls back to product.affiliateUrl
+      statsUnavailable = true;
     }
-    mark(reachedMerchant && /^https?:\/\//.test(first.affiliateUrl), `click without backend falls back to ${first.affiliateUrl}`);
+    mark(statsUnavailable, 'getAnalytics() is unavailable to public visitors without an owner session');
+    const requestsBeforeTracking = observedRequests.length;
+    await api.recordImpression();
+    mark(observedRequests.length === requestsBeforeTracking, 'unconfigured static build skips visitor telemetry requests');
+
+    // A static build without Supabase still returns the already-safe URL and
+    // never delays navigation waiting for a missing telemetry backend.
+    const first = products[0];
+    const clickResult = await api.handleAffiliateClick(first.id, undefined, 'web_lookbook', first.affiliateUrl);
+    mark(clickResult.safeUrl === first.affiliateUrl && /^https?:\/\//.test(first.affiliateUrl), 'click without backend preserves the static affiliate URL immediately');
+    mark(!observedRequests.some((url) => url.startsWith('/api/')), 'public collection reads made no API/health calls');
 
     console.log('\n=== C. writes fail loudly, not cryptically ===\n');
     let writeError = '';
@@ -177,7 +210,7 @@ async function main(): Promise<void> {
     } catch (e) {
       writeError = (e as Error).message;
     }
-    mark(writeError.includes('static'), `createProduct() -> "${writeError}"`);
+    mark(writeError.includes('Supabase'), `createProduct() -> "${writeError}"`);
     mark(writeError.length > 20, 'error is human-readable, not a JSON parse failure');
 
     let deleteError = '';
@@ -186,7 +219,7 @@ async function main(): Promise<void> {
     } catch (e) {
       deleteError = (e as Error).message;
     }
-    mark(deleteError.includes('static'), `deleteLookbook() -> "${deleteError}"`);
+    mark(deleteError.includes('Supabase'), `deleteLookbook() -> "${deleteError}"`);
 
     console.log(`\nFAILURES=${failures}`);
     process.exit(failures === 0 ? 0 : 1);

@@ -8,6 +8,10 @@ export interface SiteSettings {
     icon: string;
   }[];
   affiliateDisclosure: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+  ogImage?: string;
 }
 
 export interface Testimonial {

@@ -32,6 +32,10 @@ export const Hero: React.FC<HeroProps> = ({
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
+    typeof window !== 'undefined' &&
+    Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+  );
   const timerRef = useRef<number | null>(null);
 
   // Per-slide image resolution: primary image -> fallbackImage -> placeholder.
@@ -46,9 +50,17 @@ export const Hero: React.FC<HeroProps> = ({
   const isDragging = useRef<boolean>(false);
   const dragStartX = useRef<number>(0);
 
-  // Auto-play interval
   useEffect(() => {
-    if (isPaused || activeSlideList.length <= 1) return;
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updatePreference = (event: MediaQueryListEvent) => setPrefersReducedMotion(event.matches);
+    setPrefersReducedMotion(query.matches);
+    query.addEventListener('change', updatePreference);
+    return () => query.removeEventListener('change', updatePreference);
+  }, []);
+
+  // Auto-play only when the visitor has not requested reduced motion.
+  useEffect(() => {
+    if (isPaused || prefersReducedMotion || activeSlideList.length <= 1) return;
 
     timerRef.current = window.setInterval(() => {
       setCurrentSlide(prev => (prev + 1) % activeSlideList.length);
@@ -60,7 +72,7 @@ export const Hero: React.FC<HeroProps> = ({
         timerRef.current = null;
       }
     };
-  }, [isPaused, activeSlideList.length]);
+  }, [isPaused, prefersReducedMotion, activeSlideList.length]);
 
   // Ensure currentSlide is within bounds if slide count changes
   useEffect(() => {
@@ -163,7 +175,13 @@ export const Hero: React.FC<HeroProps> = ({
     <section
       className="relative pt-5 pb-10 sm:pt-6 sm:pb-12 md:py-16 overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+      onMouseLeave={(event) => {
+        if (!event.currentTarget.contains(document.activeElement)) setIsPaused(false);
+      }}
+      onFocusCapture={() => setIsPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsPaused(false);
+      }}
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
 
@@ -402,8 +420,9 @@ export const Hero: React.FC<HeroProps> = ({
                     <div className="space-y-1.5 my-auto hidden sm:block">
 
                       {(slide.keyPieces || []).map((piece, pIdx) => (
-                        <div
+                        <button
                           key={pIdx}
+                          type="button"
                           className="
                             inline-flex
                             items-center
@@ -427,10 +446,10 @@ export const Hero: React.FC<HeroProps> = ({
                             onOpenLook(matchedLook)
                           }
                         >
-                          <Tag className="w-3 h-3 text-[#181512]" />
+                          <Tag aria-hidden="true" className="w-3 h-3 text-[#181512]" />
 
                           <span>{piece}</span>
-                        </div>
+                        </button>
                       ))}
 
                     </div>
@@ -445,8 +464,8 @@ export const Hero: React.FC<HeroProps> = ({
                             text-xl
                             sm:text-2xl
                             md:text-3xl
-                            font-bold
-                            font-casual
+                            font-normal
+                            font-serif-editorial
                             text-white
                             leading-tight
                             mb-1
@@ -482,14 +501,14 @@ export const Hero: React.FC<HeroProps> = ({
                           px-4
                           sm:px-5
                           rounded-2xl
-                          bg-white
-                          text-[#181512]
+                          bg-crimson
+                          text-white
                           text-[11px]
                           sm:text-xs
                           font-bold
                           uppercase
                           tracking-wider
-                          hover:bg-[#f4efe9]
+                          hover:bg-plum
                           active:scale-95
                           transition
                           flex
@@ -538,12 +557,12 @@ export const Hero: React.FC<HeroProps> = ({
                 }}
                 className="
                   pointer-events-auto
-                  w-8
-                  h-8
-                  sm:w-9
-                  sm:h-9
-                  md:w-10
-                  md:h-10
+                  w-11
+                  h-11
+                  sm:w-10
+                  sm:h-10
+                  md:w-12
+                  md:h-12
                   rounded-full
                   bg-black/40
                   hover:bg-black/70
@@ -571,12 +590,12 @@ export const Hero: React.FC<HeroProps> = ({
                 }}
                 className="
                   pointer-events-auto
-                  w-8
-                  h-8
-                  sm:w-9
-                  sm:h-9
-                  md:w-10
-                  md:h-10
+                  w-11
+                  h-11
+                  sm:w-10
+                  sm:h-10
+                  md:w-12
+                  md:h-12
                   rounded-full
                   bg-black/40
                   hover:bg-black/70
@@ -603,14 +622,13 @@ export const Hero: React.FC<HeroProps> = ({
             <div
               className="
                 absolute
-                bottom-2
+                bottom-0
                 inset-x-6
                 z-20
                 flex
                 items-center
                 justify-center
                 gap-2
-                pb-2
               "
             >
               {activeSlideList.map((_, idx) => {
@@ -620,21 +638,16 @@ export const Hero: React.FC<HeroProps> = ({
                   <button
                     key={idx}
                     onClick={() => setCurrentSlide(idx)}
-                    className={`
-                      h-1.5
-                      rounded-full
-                      transition-all
-                      duration-300
-                      cursor-pointer
-                      ${
-                        isActive
-                          ? 'w-8 bg-white'
-                          : 'w-2 bg-white/40 hover:bg-white/70'
-                      }
-                    `}
+                    className="flex h-6 w-6 items-center justify-center rounded-full cursor-pointer"
                     aria-label={`Go to slide ${idx + 1}`}
                     aria-current={isActive ? 'true' : 'false'}
-                  />
+                  >
+                    <span
+                      className={`block h-1.5 rounded-full transition-all duration-300 ${
+                        isActive ? 'w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/70'
+                      }`}
+                    />
+                  </button>
                 );
               })}
             </div>
@@ -673,14 +686,14 @@ export const Hero: React.FC<HeroProps> = ({
                 sm:px-8
                 sm:py-4
                 rounded-full
-                bg-[#181512]
+                bg-crimson
                 text-white
                 text-[11px]
                 sm:text-xs
                 font-bold
                 uppercase
                 tracking-widest
-                hover:bg-black
+                hover:bg-plum
                 active:scale-[0.98]
                 transition
                 shadow-md

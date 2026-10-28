@@ -1,0 +1,7 @@
+# Public MUIRO pages are available to search and AI retrieval crawlers.
+# Model-training crawlers are not separately opted out; they follow the wildcard policy.
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://muirofashion.netlify.app/sitemap.xml

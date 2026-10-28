@@ -1,0 +1,381 @@
+{
+  "products": [
+    {
+      "title": "skhwhwoa",
+      "price": "",
+      "numericPrice": 0,
+      "board": "Curated Edit",
+      "category": "Sweaters",
+      "image": "/uploads/1791818135486_07ca4a5dacda_image_8e120113.png",
+      "description": "akkakfke",
+      "affiliateUrl": "https://www.amazon.com/ZITEZHGO-Streetwear-Oversized-Patchwork-Sweatshirt/dp/B0D5DFTKNF?crid=LZDKGVC9E431&dib=eyJ2IjoiMSJ9.1vBR8Jn4ypO0aHuAPgqv0jTDNKE_dZFjoCnTHHNSX3Us_ahvt5qLeoyxXtHLPB-oncX6hPkxEN9iv-hzBDA1LEPnu_tHESXgoV2caKZRLRhvdtp7oRBIBrUHULrseC9WDCG9LFD1nF5avXcCErorGckQd33x9d3aD6_qiZIQ4Fi8ix_N6xuF88VFVB9MToAk06h4KXTBQ_vFjbRC6hl0impYKeu4WbJNU4HwzC_4TqcZ8CiAb9qdxcA7SbzdbH7JhMAKUHQRR4AUfqoVvGWMfvImt9tNItISTfR76_8axKU.0_tJ2UPVR-hbBwYeDaTpJMQpGFNCBTuOBLVy_QQZARk&dib_tag=se&keywords=emo%2Boutfits%2Bfor%2Bwomen&qid=1787487749&sprefix=emo%2Bou%2Caps%2C401&sr=8-28&th=1&psc=1&linkCode=ll2&tag=fashionzon03-20&linkId=b23e5180d739459ea5958df1d9563b93&language=en_US&gaOptInStatus=true&ref_=as_li_ss_tl",
+      "merchant": "Amazon",
+      "merchantId": "merchant-amazon",
+      "affiliateProgramId": "program-amazon",
+      "commissionRate": 4,
+      "badge": "Verified Link",
+      "rating": 5,
+      "reviewCount": 1,
+      "featured": true,
+      "isNewlyAdded": true,
+      "isTrending": false,
+      "id": "p-1791818156710",
+      "clicks": 0
+    },
+    {
+      "id": "p001",
+      "title": "Y2K Floral Drawstring A-Line Dress",
+      "price": "$43.99",
+      "numericPrice": 43.99,
+      "board": "Acubi Aesthetic Outfit",
+      "category": "Dresses",
+      "image": "https://i.pinimg.com/736x/e1/ae/2a/e1ae2afed5c0cdfc33e8bc7aabb9ec99.jpg",
+      "description": "Floral A-line dress with an adjustable drawstring waist, made for relaxed everyday styling and effortless silhouettes.",
+      "affiliateUrl": "https://www.amazon.com/dp/B0F2GZ1QWN?tag=fashionzon03-20",
+      "merchant": "Amazon",
+      "commissionRate": 10,
+      "rating": 4.9,
+      "reviewCount": 384,
+      "clicks": 0,
+      "featured": true,
+      "merchantId": "merchant-amazon",
+      "affiliateProgramId": "program-amazon"
+    },
+    {
+      "id": "p002",
+      "title": "Off-Shoulder Lolita Cozy Fleece Sweater",
+      "price": "$38.50",
+      "numericPrice": 38.5,
+      "board": "Acubi Aesthetic Outfit",
+      "category": "Sweaters",
+      "image": "https://i.pinimg.com/736x/b0/04/fb/b004fb2af71b8128b8327441c54d6208.jpg",
+      "description": "Ultra-soft fuzzy fleece pullover with a slouchy boat neck silhouette. Perfect for layering over delicate bralettes.",
+      "affiliateUrl": "https://www.amazon.com/dp/B0DSFS8DTV?tag=fashionzon03-20",
+      "merchant": "Amazon",
+      "commissionRate": 10,
+      "rating": 5,
+      "reviewCount": 512,
+      "clicks": 0,
+      "featured": true,
+      "merchantId": "merchant-amazon",
+      "affiliateProgramId": "program-amazon"
+    },
+    {
+      "id": "p1-1",
+      "title": "V-Neck Chocolate Ribbed Long Sleeve Tee",
+      "price": "$24.99",
+      "numericPrice": 24.99,
+      "board": "Linen & Minimalist Dress",
+      "category": "Tops",
+      "image": "https://ugc.production.linktr.ee/e92acc3e-2f15-451c-adea-224dcd9daa56_5d04ea00-9951-476b-991a-6c2e3b62af22--1-.jpeg?io=true&size=thumbnail-stack_v1_0",
+      "description": "Form-fitting chocolate brown ribbed knit top with a flattering deep v-neckline for effortless everyday chic.",
+      "affiliateUrl": "https://amzn.to/4yEua07",
+      "merchant": "Amazon",
+      "commissionRate": 8.5,
+      "rating": 4.8,
+      "reviewCount": 229,
+      "clicks": 0,
+      "featured": false,
+      "merchantId": "merchant-amazon",
+      "affiliateProgramId": "program-amazon"
+    },
+    {
+      "id": "p1-2",
+      "title": "Low Rise Boyfriend Jeans Baggy Straight Leg",
+      "price": "$49.90",
+      "numericPrice": 49.9,
+      "board": "Linen & Minimalist Dress",
+      "category": "Jeans",
+      "image": "https://ugc.production.linktr.ee/d55c2307-2385-4fbb-acce-28dfaa008631_5d04ea00-9951-476b-991a-6c2e3b62af22--1-.jpeg?io=true&size=thumbnail-stack_v1_0",
+      "description": "Light wash vintage denim with a relaxed low-slung waist and wide straight leg cut for authentic Y2K energy.",
+      "affiliateUrl": "https://amzn.to/4gZextZ",
+      "merchant": "Amazon",
+      "commissionRate": 9,
+      "rating": 4.9,
+      "reviewCount": 641,
+      "clicks": 0,
+      "featured": true,
+      "merchantId": "merchant-amazon",
+      "affiliateProgramId": "program-amazon"
+    },
+    {
+      "id": "p1-3",
+      "title": "Keds Triple Up Platform Canvas Sneaker",
+      "price": "$55.00",
+      "numericPrice": 55,
+      "board": "Linen & Minimalist Dress",
+      "category": "Shoes",
+      "image": "https://ugc.production.linktr.ee/eadb6bd5-1a0a-4af7-bb1e-af279a8e736b_5d04ea00-9951-476b-991a-6c2e3b62af22--1-.jpeg?io=true&size=thumbnail-stack_v1_0",
+      "description": "Classic white triple-tier platform sneaker providing height, lightweight cushioning, and clean streetwear vibes.",
+      "affiliateUrl": "https://amzn.to/4x7FbFX",
+      "merchant": "Amazon",
+      "commissionRate": 8,
+      "rating": 4.7,
+      "reviewCount": 180,
+      "clicks": 0,
+      "featured": false,
+      "merchantId": "merchant-amazon",
+      "affiliateProgramId": "program-amazon"
+    },
+    {
+      "id": "p2-1",
+      "title": "White Ribbed Knit Undershirt Top",
+      "price": "$29.99",
+      "numericPrice": 29.99,
+      "board": "Autumn Fashion | Fall Outfit Ideas",
+      "category": "Tops",
+      "image": "https://m.media-amazon.com/images/W/BW_MEDIAX_AVIF_MEASUREMENT_1306696-T1/images/I/51TvHffyl+L._AC_SX679_.jpg",
+      "description": "A clean-girl wardrobe essential, blending comfy stretch knit fabric with an understated Korean aesthetic.",
+      "affiliateUrl": "https://www.amazon.com/Winter-Sweater-Knitted-Undershirt-Bottoming/dp/B0DL5YSY3Q?tag=fashionzon03-20",
+      "merchant": "Amazon",
+      "commissionRate": 10,
+      "rating": 4.8,
+      "reviewCount": 310,
+      "clicks": 0,
+      "featured": false,
+      "merchantId": "merchant-amazon",
+      "affiliateProgramId": "program-amazon"
+    },
+    {
+      "id": "p2-2",
+      "title": "Light Wash Wide-Leg Distressed Jeans",
+      "price": "$48.00",
+      "numericPrice": 48,
+      "board": "Autumn Fashion | Fall Outfit Ideas",
+      "category": "Jeans",
+      "image": "https://m.media-amazon.com/images/W/BW_MEDIAX_AVIF_MEASUREMENT_1306696-T1/images/I/71kkksuX4cL._AC_SY741_.jpg",
+      "description": "Relaxed high-waisted boyfriend jeans with a loose straight-leg cut for ultimate casual day-to-night comfort.",
+      "affiliateUrl": "https://www.amazon.com/Boyfriend-Distressed-Straight-Trousers-Streetwear/dp/B0BBPRQ787?tag=fashionzon03-20",
+      "merchant": "Amazon",
+      "commissionRate": 9,
+      "rating": 4.9,
+      "reviewCount": 420,
+      "clicks": 0,
+      "featured": true,
+      "merchantId": "merchant-amazon",
+      "affiliateProgramId": "program-amazon"
+    },
+    {
+      "id": "p2-3",
+      "title": "Converse Chuck Taylor All Star Low Top",
+      "price": "$65.00",
+      "numericPrice": 65,
+      "board": "Autumn Fashion | Fall Outfit Ideas",
+      "category": "Shoes",
+      "image": "https://m.media-amazon.com/images/W/BW_MEDIAX_AVIF_MEASUREMENT_1306696-T1/images/I/61fqHgYEGfL._AC_SX625_.jpg",
+      "description": "Timeless black canvas low tops with iconic vulcanized rubber soles. The versatile foundation for every capsule look.",
+      "affiliateUrl": "https://www.amazon.com/Converse-Unisex-Black-Mono-Women/dp/B07PRP1GXB?tag=fashionzon03-20",
+      "merchant": "Amazon",
+      "commissionRate": 7.5,
+      "rating": 4.9,
+      "reviewCount": 980,
+      "clicks": 0,
+      "featured": false,
+      "merchantId": "merchant-amazon",
+      "affiliateProgramId": "program-amazon"
+    }
+  ],
+  "lookbooks": [
+    {
+      "id": "look-1",
+      "title": "Streetwear Outfit Inspo",
+      "board": "Linen & Minimalist Dress",
+      "category": "Streetwear",
+      "cover": "https://i.pinimg.com/474x/25/41/2c/25412cbe38af795ed7d7dda468951c6b.jpg",
+      "frame": "2-3",
+      "description": "Recreate this viral aesthetic Asian streetwear outfit look! Featuring a chocolate brown ribbed v-neck long sleeve slim-fit tee paired effortlessly with light wash low-rise baggy straight-leg denim jeans. This casual, minimalist look is perfect for everyday style, school outfits, or a clean weekend aesthetic.",
+      "authorNote": "Finish with one sculptural accessory and let the proportions do the work.",
+      "pieces": [
+        "p1-1",
+        "p1-2",
+        "p1-3"
+      ],
+      "views": 0,
+      "likes": 0,
+      "featured": true
+    },
+    {
+      "id": "look-2",
+      "title": "Cute Everyday Outfits With White Long Sleeve Top",
+      "board": "Autumn Fashion | Fall Outfit Ideas",
+      "category": "Autumn Chic",
+      "cover": "https://i.pinimg.com/736x/4e/a4/0f/4ea40fed8edaef38ca04dd7c41dd23d0.jpg",
+      "frame": "2-3",
+      "description": "A cozy, minimalist autumn combination with a crisp textured knit top, slouchy denim, and vintage low-top sneakers. Subtle, comfortable, and undeniably photogenic.",
+      "authorNote": "Keep the palette quiet and let texture carry the look through the season.",
+      "pieces": [
+        "p2-1",
+        "p2-2",
+        "p2-3"
+      ],
+      "views": 0,
+      "likes": 0,
+      "featured": true
+    },
+    {
+      "id": "look-3",
+      "title": "Acubi Aesthetic & Soft Lolita Layering",
+      "board": "Acubi Aesthetic Outfit",
+      "category": "Acubi & Y2K",
+      "cover": "https://i.pinimg.com/736x/e1/ae/2a/e1ae2afed5c0cdfc33e8bc7aabb9ec99.jpg",
+      "frame": "2-3",
+      "description": "The dreamiest combination of soft-girl texture and edgy Y2K proportions. The drawstring floral A-line layer balances the fuzzy fleece sweater seamlessly.",
+      "authorNote": "Balance soft texture with one sharper piece for an effortless contrast.",
+      "pieces": [
+        "p001",
+        "p002"
+      ],
+      "views": 0,
+      "likes": 0,
+      "featured": true
+    }
+  ],
+  "testimonials": [],
+  "clicks": [],
+  "impressions": 0,
+  "heroSlides": [
+    {
+      "id": "hero-1",
+      "image": "/hero-1.jpg",
+      "fallbackImage": "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?auto=format&fit=crop&w=800&q=80",
+      "title": "Autumn Essentials & Layered Knits",
+      "tagline": "Beige Cable-Knit Vest, Crisp Poplin Shirt & Tan Loafers",
+      "category": "Fall / Autumn Edit",
+      "lookId": "look-1",
+      "keyPieces": [
+        "Cable Knit Vest",
+        "Tan Loafers",
+        "Poplin Shirt"
+      ],
+      "isActive": true,
+      "order": 1
+    },
+    {
+      "id": "hero-2",
+      "image": "/hero-2.jpg",
+      "fallbackImage": "/hero-3.jpg",
+      "title": "K-Fashion Summer & Y2K Softwear",
+      "tagline": "Tiered Ruffle Skirt, Floral Babydoll Dress & Baby Tee",
+      "category": "Korean Summer Aesthetic",
+      "lookId": "look-2",
+      "keyPieces": [
+        "Tiered Ruffle Skirt",
+        "Babydoll Dress",
+        "Contrast Baby Tee"
+      ],
+      "isActive": true,
+      "order": 2
+    },
+    {
+      "id": "hero-3",
+      "image": "/hero-3.jpg",
+      "fallbackImage": "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&w=800&q=80",
+      "title": "10 Effortless Outfit Ideas For Every Day",
+      "tagline": "Tiered Cotton Maxi Skirt, Platform Combat Boots & Olive Bomber",
+      "category": "Casual Street Inspo",
+      "lookId": "look-3",
+      "keyPieces": [
+        "Cotton Maxi Skirt",
+        "Combat Boots",
+        "Slouchy Bomber"
+      ],
+      "isActive": true,
+      "order": 3
+    },
+    {
+      "id": "hero-4",
+      "image": "/hero-4.jpg",
+      "fallbackImage": "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&w=800&q=80",
+      "title": "How to Look Stylish: 4 Capsule Formulas",
+      "tagline": "Breton Striped Cardigan, Cable Knit Crewneck & Butter Yellow Polo",
+      "category": "Minimalist Chic",
+      "lookId": "look-4",
+      "keyPieces": [
+        "Striped Cardigan",
+        "Cream Cable Knit",
+        "Butter Yellow Polo"
+      ],
+      "isActive": true,
+      "order": 4
+    }
+  ],
+  "settings": {
+    "aboutTitle": "About MUIRO & Our Editorial Vision",
+    "aboutSubtitle": "Bridging the gap between aesthetic moodboards and verified, direct shoppable pieces.",
+    "aboutStory": "MUIRO was created out of a simple frustration: discovering captivating outfit lookbooks across Pinterest and Instagram, only to hit dead-ends, low-grade dupes, or mysterious unlinked garments. We deconstruct every aesthetic lookbook into individual, wearable wardrobe pieces and connect you directly with authenticated retail merchants—including Amazon Associates, Revolve, and Nordstrom. Every piece is vetted for fit, fabric quality, and transparent zero-markup pricing.",
+    "aboutPillars": [
+      {
+        "title": "Direct Merchant Verification",
+        "desc": "Every listed garment links directly to verified authentic merchant partners with authentic return policies and direct pricing.",
+        "icon": "ShieldCheck"
+      },
+      {
+        "title": "Zero-Markup Transparency",
+        "desc": "Some links are affiliate links. Qualifying purchases may earn MUIRO a commission at no extra cost to you.",
+        "icon": "Sparkles"
+      },
+      {
+        "title": "Garment Fabric Zoom Inspector",
+        "desc": "Interactive high-resolution fabric and weave zoom inspector allows you to inspect garments up close before clicking through to purchase.",
+        "icon": "Eye"
+      }
+    ],
+    "affiliateDisclosure": "Some links are affiliate links. Qualifying purchases may earn MUIRO a commission at no extra cost to you.",
+    "seoTitle": "MUIRO",
+    "seoDescription": "Explore MUIRO fashion lookbooks and outfit ideas, discover the products featured in each edit, and shop through direct links to retail partners.",
+    "seoKeywords": "MUIRO, fashion lookbooks, outfit ideas, shoppable fashion, curated style",
+    "ogImage": "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80"
+  },
+  "affiliatePrograms": [
+    {
+      "id": "program-amazon",
+      "name": "Amazon Associates",
+      "network": "Amazon Associates",
+      "website": "https://affiliate-program.amazon.com/",
+      "defaultCommissionRate": 8,
+      "disclosure": "MUIRO may earn a commission from qualifying purchases.",
+      "status": "active"
+    },
+    {
+      "id": "program-revolve",
+      "name": "Revolve Affiliate Program",
+      "network": "Revolve",
+      "website": "https://www.revolve.com/",
+      "defaultCommissionRate": 12,
+      "disclosure": "MUIRO may earn a commission from qualifying purchases.",
+      "status": "active"
+    },
+    {
+      "id": "program-nordstrom",
+      "name": "Nordstrom Affiliate Program",
+      "network": "Nordstrom",
+      "website": "https://www.nordstrom.com/",
+      "defaultCommissionRate": 8,
+      "disclosure": "MUIRO may earn a commission from qualifying purchases.",
+      "status": "active"
+    }
+  ],
+  "merchants": [
+    {
+      "id": "merchant-amazon",
+      "name": "Amazon",
+      "website": "https://www.amazon.com/",
+      "affiliateProgramId": "program-amazon",
+      "status": "active"
+    },
+    {
+      "id": "merchant-revolve",
+      "name": "Revolve",
+      "website": "https://www.revolve.com/",
+      "affiliateProgramId": "program-revolve",
+      "status": "active"
+    },
+    {
+      "id": "merchant-nordstrom",
+      "name": "Nordstrom",
+      "website": "https://www.nordstrom.com/",
+      "affiliateProgramId": "program-nordstrom",
+      "status": "active"
+    }
+  ]
+}

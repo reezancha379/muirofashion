@@ -86,7 +86,13 @@ async function main(): Promise<void> {
   if (!pin) throw new Error('MUIRO_ADMIN_PIN required to run the CMS integration test');
   mark(await api.verifyAdminCredential(pin), 'client logs in with the configured passcode');
 
-  // ---------- 3. Upload a real image ----------
+  // ---------- 3. Managed categories persist and are safe to rename/delete ----------
+  const initialCategories = await api.getCategories();
+  mark(Array.isArray(initialCategories) && initialCategories.length > 0, 'category endpoint returns managed/derived categories');
+  const category = await api.createCategory({ name: 'CMS Integration Category', slug: 'cms-integration-category', description: 'Temporary integration category' });
+  mark(!!category.id && category.slug === 'cms-integration-category', `category created -> ${category.id}`);
+
+  // ---------- 4. Upload a real image ----------
   const up = await api.uploadImage(new File([Buffer.from(TINY_PNG_BASE64, 'base64')], 'tiny.png', { type: 'image/png' }));
   mark(typeof up.url === 'string' && up.url.startsWith('/uploads/'), `upload returns a public path -> ${up.url}`);
   mark(/^[A-Za-z0-9_./-]+$/.test(up.url), 'upload URL has no unsafe characters / no Windows path leak');
@@ -149,11 +155,12 @@ async function main(): Promise<void> {
     title: 'CMS Integration Product',
     price: '$123.45',
     numericPrice: 123.45,
-    category: 'Test',
+    category: category.name,
     merchant: merchant.name,
     merchantId: merchant.id,
     affiliateProgramId: program.id,
     image: up.url,
+    imageAlt: 'A cream coat on a model against a neutral backdrop',
     affiliateUrl: 'https://www.amazon.com/dp/B0CMSINTEGRATE?tag=fashionzon03-20',
     commissionRate: 9,
     description: 'integration test product',
@@ -163,7 +170,11 @@ async function main(): Promise<void> {
   });
   mark(!!prod && prod.id != null, `product created -> ${prod && prod.id}`);
   mark(prod.image === up.url, `product persisted the uploaded image -> ${prod.image}`);
+  mark(prod.imageAlt === 'A cream coat on a model against a neutral backdrop', 'product image alt text persists on create');
+  mark(prod.category === category.name, 'new product is assigned to its managed category');
   mark(prod.price === '$123.45', `product price persisted -> "${prod.price}"`);
+  const updatedAltProduct = await api.updateProduct(prod.id, { imageAlt: 'Updated coat image description' });
+  mark(updatedAltProduct.imageAlt === 'Updated coat image description', 'product image alt text persists through update');
   const productList = await api.getProducts();
   const savedProd = productList.find((p: any) => p.id === prod.id);
   mark(!!savedProd && savedProd.image === up.url, 'GET /products returns the same uploaded image');
@@ -172,7 +183,7 @@ async function main(): Promise<void> {
   const lb = await api.createLookbook({
     title: 'CMS Integration Look',
     board: 'Test Board',
-    category: 'Test',
+    category: category.name,
     cover: up.url,
     description: 'lookbook with uploaded cover',
     pieces: [prod.id]
@@ -181,14 +192,24 @@ async function main(): Promise<void> {
   const lookbookList = await api.getLookbooks();
   const savedLook = lookbookList.find((l: any) => l.id === lb.id);
   mark(!!savedLook && savedLook.pieces.includes(prod.id) && savedLook.cover === up.url, 'GET /lookbooks returns uploaded cover + product relationship');
+  mark(savedLook?.category === category.name, 'new lookbook is assigned to its managed category');
 
-  // ---------- 9. Testimonial can store the uploaded avatar ----------
+  const renamedCategory = await api.updateCategory(category.id, { name: 'CMS Integration Edit', slug: 'cms-integration-edit' });
+  mark(renamedCategory.name === 'CMS Integration Edit', 'category can be renamed');
+  const renamedProduct = (await api.getProducts()).find((item: any) => item.id === prod.id);
+  const renamedLookbook = (await api.getLookbooks()).find((item: any) => item.id === lb.id);
+  mark(renamedProduct?.category === renamedCategory.name && renamedLookbook?.category === renamedCategory.name, 'renaming a category propagates to assigned products and lookbooks');
+  let assignedCategoryDeleteBlocked = false;
+  try { await api.deleteCategory(category.id); } catch { assignedCategoryDeleteBlocked = true; }
+  mark(assignedCategoryDeleteBlocked, 'assigned category cannot be deleted until content is reassigned');
+
+  // ---------- 10. Testimonial can store the uploaded avatar ----------
   const tst = await api.createTestimonial({
     author: 'CMS Integration', location: 'Test', avatar: up.url, rating: 5, outfitTitle: 'Test', comment: 'integration avatar', verified: true
   });
   mark(!!tst && tst.avatar === up.url, `testimonial avatar persisted -> ${tst.avatar}`);
 
-  // ---------- 10. Delete-all hero slides persists as empty (no silent re-seed) ----------
+  // ---------- 11. Delete-all hero slides persists as empty (no silent re-seed) ----------
   const backingHeroes = await api.getHeroSlides();
   for (const s of backingHeroes) await api.deleteHeroSlide(s.id);
   const afterDeleteAll = await api.getHeroSlides();
@@ -197,11 +218,14 @@ async function main(): Promise<void> {
   const restored = await api.updateAllHeroSlides(backingHeroes as never);
   mark(restored.length === backingHeroes.length && restored.length > 0, `hero slides restored (${restored.length}) after delete-all test`);
 
-  // ---------- 11. Cleanup temp records ----------
+  // ---------- 12. Cleanup temp records ----------
   await api.deleteProduct(prod.id);
   await api.deleteLookbook(lb.id);
   await api.deleteTestimonial(tst.id);
   await api.deleteHeroSlide(hs.id);
+  await api.deleteCategory(category.id);
+  const remainingCategories = await api.getCategories();
+  mark(!remainingCategories.some((item: any) => item.id === category.id), 'unused managed category can be deleted after content cleanup');
   const finalProducts = await api.getProducts();
   mark(!finalProducts.some((p: any) => p.id === prod.id), 'cleanup removed the integration product');
 

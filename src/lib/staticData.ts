@@ -1,45 +1,50 @@
-import { Lookbook, Product, Testimonial, SiteSettings, HeroSlide, AnalyticsStats, AffiliateProgram, Merchant } from '@/types';
+import { Lookbook, Product, ProductCategory, Testimonial, SiteSettings, HeroSlide, AnalyticsStats, AffiliateProgram, Merchant } from '@/types';
+import { isSupabaseBackendConfigured } from './apiTransport';
 
 /**
- * Static-host support (Netlify and friends).
- *
- * The full-stack build serves JSON from Express at /api/*. A static host has
- * no server, and its SPA fallback answers every unknown path -- including
- * /api/* -- with index.html and status 200. So "did the request succeed" is
- * NOT a usable signal there; only the response *shape* is. We probe once for a
- * JSON health check and remember the answer for the lifetime of the page.
- *
- * When no backend is present, reads fall back to a build-time snapshot of the
- * content (public/content-snapshot.json) so the storefront still renders real
- * lookbooks and products instead of an empty screen. Writes are impossible
- * without a server and report that plainly rather than failing cryptically.
+ * Static-host support (Netlify and friends). The public Netlify bundle never
+ * probes a backend during normal browsing: it renders from content-snapshot.json.
+ * Only an owner with a MUIRO session may read live CMS data from Supabase.
+ * Local Express development keeps its existing /api-first behavior.
  */
-
 export interface StaticSnapshot {
   lookbooks: Lookbook[];
   products: Product[];
+  categories?: ProductCategory[];
   testimonials: Testimonial[];
   heroSlides: HeroSlide[];
   settings: SiteSettings;
-  stats: AnalyticsStats;
-  affiliatePrograms: AffiliateProgram[];
-  merchants: Merchant[];
+  // Admin-only compatibility fields are optional and are intentionally omitted
+  // from the public static snapshot produced by build-static.ts.
+  stats?: AnalyticsStats;
+  affiliatePrograms?: AffiliateProgram[];
+  merchants?: Merchant[];
 }
 
-/** Message shown when someone tries to edit from a static deployment. */
 export const STATIC_WRITE_ERROR =
-  'Content editing needs the MUIRO server. This deployment is static (no backend), so saves are unavailable. Run "node --import tsx server.ts" locally to edit.';
+  'Owner Studio requires the Supabase backend. Check the public project URL/key build settings and the Supabase Function configuration.';
 
+const VITE_ENV = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env || {};
+const STATIC_PUBLIC_BUILD = VITE_ENV.VITE_STATIC_PUBLIC === 'true' ||
+  (globalThis as typeof globalThis & { __MUIRO_STATIC_PUBLIC__?: boolean }).__MUIRO_STATIC_PUBLIC__ === true;
 let backendProbe: Promise<boolean> | null = null;
 
-/** True when a real JSON API is reachable; memoised after the first call. */
+function hasAdminSession(): boolean {
+  try {
+    return Boolean(sessionStorage.getItem('muiro_admin_token'));
+  } catch {
+    return false;
+  }
+}
+
+/** True when a usable API is configured/reachable; static visitors never probe. */
 export function hasBackend(): Promise<boolean> {
+  if (isSupabaseBackendConfigured()) return Promise.resolve(true);
+  if (STATIC_PUBLIC_BUILD) return Promise.resolve(false);
   if (!backendProbe) {
     backendProbe = fetch('/api/health', { cache: 'no-store' })
       .then(async (res) => {
         const text = await res.text().catch(() => '');
-        // Static hosts return index.html with 200 for unknown paths, so require
-        // both a 2xx status and a JSON body.
         return res.ok && /^\s*\{/.test(text);
       })
       .catch(() => false);
@@ -49,38 +54,58 @@ export function hasBackend(): Promise<boolean> {
 
 let snapshotPromise: Promise<StaticSnapshot | null> | null = null;
 
-/** Loads the build-time content snapshot, or null when none was shipped. */
 export function loadStaticSnapshot(): Promise<StaticSnapshot | null> {
   if (!snapshotPromise) {
     snapshotPromise = fetch('./content-snapshot.json', { cache: 'no-cache' })
       .then(async (res) => {
         if (!res.ok) return null;
         const text = await res.text();
-        if (!/^\s*\{/.test(text)) return null; // got index.html back instead
-        return JSON.parse(text) as StaticSnapshot;
+        if (!/^\s*\{/.test(text)) return null;
+        const value = JSON.parse(text) as StaticSnapshot;
+        if (!Array.isArray(value.lookbooks) || !Array.isArray(value.products)) return null;
+        return value;
       })
       .catch(() => null);
   }
   return snapshotPromise;
 }
 
-/**
- * Resolves a read against the API, falling back to the snapshot when there is
- * no backend. `pick` selects this endpoint's slice of the snapshot.
- */
+async function snapshotValue<T>(pick: (snap: StaticSnapshot) => T | undefined, errorMessage: string): Promise<T> {
+  const snap = await loadStaticSnapshot();
+  const value = snap ? pick(snap) : undefined;
+  if (value !== undefined) return value;
+  throw new Error(errorMessage);
+}
+
 export async function readOrSnapshot<T>(
   request: () => Promise<Response>,
   pick: (snap: StaticSnapshot) => T | undefined,
   errorMessage: string
 ): Promise<T> {
+  const remoteConfigured = isSupabaseBackendConfigured();
+  const ownerSession = hasAdminSession();
+
+  if (remoteConfigured) {
+    // Public visitors on Netlify stay entirely on the snapshot; no API health
+    // probe, Edge call, or Supabase wait is made during normal page rendering.
+    if (STATIC_PUBLIC_BUILD && !ownerSession) return snapshotValue(pick, errorMessage);
+    if (ownerSession) {
+      const res = await request();
+      if (res.ok) return (await res.json()) as T;
+      throw new Error(errorMessage);
+    }
+    return snapshotValue(pick, errorMessage);
+  }
+
+  if (STATIC_PUBLIC_BUILD) return snapshotValue(pick, errorMessage);
+
+  // Preserve current local Express development behavior. Its live content is
+  // useful to the owner after editing; a static host's SPA HTML is rejected by
+  // the JSON health-probe check above.
   if (await hasBackend()) {
     const res = await request();
     if (res.ok) return (await res.json()) as T;
     throw new Error(errorMessage);
   }
-
-  const snap = await loadStaticSnapshot();
-  const value = snap ? pick(snap) : undefined;
-  if (value !== undefined) return value;
-  throw new Error(errorMessage);
+  return snapshotValue(pick, errorMessage);
 }

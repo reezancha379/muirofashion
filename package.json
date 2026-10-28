@@ -16,6 +16,7 @@
     "test:client": "node --import tsx tests/client-e2e.test.ts",
     "test:static": "node --import tsx tests/static-e2e.test.ts",
     "test:integration": "node --import tsx tests/cms-integration.test.ts",
+    "test:snapshot": "node --import tsx tests/public-snapshot.test.ts",
     "build:static:watch": "npm run build:static"
   },
   "dependencies": {

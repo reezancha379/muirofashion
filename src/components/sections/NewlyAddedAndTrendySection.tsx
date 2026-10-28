@@ -150,7 +150,7 @@ export const NewlyAddedAndTrendySection: React.FC<NewlyAddedAndTrendyProps> = ({
             <Sparkles className="w-3.5 h-3.5" />
             <span>The MUIRO Edit</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold font-display text-[#181512] tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-normal font-serif-editorial text-[#181512] tracking-tight">
             The season, in motion.
           </h2>
           <p className="text-sm text-[#6e6761] mt-1 max-w-xl">
@@ -291,7 +291,7 @@ export const NewlyAddedAndTrendySection: React.FC<NewlyAddedAndTrendyProps> = ({
                     </div>
 
                     <div className="pt-2 border-t border-[#f4efe9] flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#8c7b6d]">
+                      <span className="text-xs font-semibold text-[#6B6569]">
                         {look.pieces?.length || 4} Curated Pieces
                       </span>
 
@@ -348,7 +348,7 @@ export const NewlyAddedAndTrendySection: React.FC<NewlyAddedAndTrendyProps> = ({
                   {/* Info & Buy CTA */}
                   <div className="p-4 flex-1 flex flex-col justify-between">
                     <div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#8c7b6d] mb-0.5">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-[#6B6569] mb-0.5">
                         {product.category || 'Wardrobe Essential'}
                       </div>
                       <h3 className="font-semibold text-sm text-[#181512] line-clamp-1 mb-2">

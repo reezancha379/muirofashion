@@ -29,7 +29,9 @@
     "tests",
     "server.ts",
     "build-static.ts",
-    "vite.config.ts"
+    "vite.config.ts",
+    "supabase/functions/**/*.ts",
+    "tests/deno-globals.d.ts"
   ],
   "exclude": [
     "node_modules",

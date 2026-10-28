@@ -3,46 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <link rel="icon" type="image/png" href="./favicon.png" />
-    <link rel="shortcut icon" href="./favicon.png" />
-    <link rel="apple-touch-icon" href="./favicon.png" />
-    <title>MUIRO – Shoppable Fashion Lookbook & Affiliate Studio</title>
-    <meta name="description" content="MUIRO is a visual fashion destination for considered looks, timeless pieces, and effortless inspiration." />
-    
-    <!-- OpenGraph & Social Cards -->
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+    <title>MUIRO</title>
+    <meta name="description" content="Explore MUIRO fashion lookbooks and outfit ideas, discover the products featured in each edit, and shop through direct links to retail partners." />
+    <meta name="keywords" content="MUIRO, fashion lookbooks, outfit ideas, shoppable fashion, curated style" />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <link rel="canonical" href="https://muirofashion.netlify.app/" />
+
+    <!-- Open Graph and social cards -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="MUIRO – Shoppable Fashion Lookbook & Affiliate Studio" />
-    <meta property="og:description" content="MUIRO is a visual fashion destination for considered looks, timeless pieces, and effortless inspiration." />
-    <meta property="og:site_name" content="MUIRO Fashion" />
-    <meta property="og:image" content="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80" />
-    
-    <!-- Twitter Cards -->
+    <meta property="og:title" content="MUIRO" />
+    <meta property="og:description" content="Explore MUIRO fashion lookbooks and outfit ideas, discover the products featured in each edit, and shop through direct links to retail partners." />
+    <meta property="og:url" content="https://muirofashion.netlify.app/" />
+    <meta property="og:site_name" content="MUIRO" />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" />
+    <meta property="og:image:alt" content="Fashion lookbook editorial image for MUIRO" />
+
+    <!-- Twitter cards -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="MUIRO – Shoppable Fashion Lookbook & Affiliate Studio" />
-    <meta name="twitter:description" content="MUIRO is a visual fashion destination for considered looks, timeless pieces, and effortless inspiration." />
-    <meta name="twitter:image" content="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80" />
+    <meta name="twitter:title" content="MUIRO" />
+    <meta name="twitter:description" content="Explore MUIRO fashion lookbooks and outfit ideas, discover the products featured in each edit, and shop through direct links to retail partners." />
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&amp;fit=crop&amp;w=1200&amp;q=80" />
+    <meta name="twitter:image:alt" content="Fashion lookbook editorial image for MUIRO" />
 
     <!-- Self-hosted fonts (public/fonts) - no third-party request, renders offline -->
     <link href="./fonts/fonts.css" rel="stylesheet">
 
-    <!-- Schema.org Structured Data -->
+    <!-- Public site identity; no merchant/product claims are asserted. -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "CollectionPage",
-      "name": "MUIRO Curated Fashion Lookbooks",
-      "description": "MUIRO is a visual fashion destination for considered looks, timeless pieces, and effortless inspiration.",
-      "url": "https://muiro.fashion",
-      "publisher": {
-        "@type": "Organization",
-        "name": "MUIRO Fashion Edit"
-      }
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://muirofashion.netlify.app/#organization",
+          "name": "MUIRO",
+          "url": "https://muirofashion.netlify.app/",
+          "logo": "https://muirofashion.netlify.app/apple-touch-icon.png"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://muirofashion.netlify.app/#website",
+          "name": "MUIRO",
+          "url": "https://muirofashion.netlify.app/",
+          "publisher": { "@id": "https://muirofashion.netlify.app/#organization" }
+        },
+        {
+          "@type": "CollectionPage",
+          "@id": "https://muirofashion.netlify.app/#webpage",
+          "name": "MUIRO",
+          "description": "Explore MUIRO fashion lookbooks and outfit ideas, discover the products featured in each edit, and shop through direct links to retail partners.",
+          "url": "https://muirofashion.netlify.app/",
+          "isPartOf": { "@id": "https://muirofashion.netlify.app/#website" }
+        }
+      ]
     }
     </script>
   </head>
-  <body class="bg-[#fcfbf9] text-[#181512] antialiased selection:bg-[#181512] selection:text-white">
+  <body class="bg-paper text-ink antialiased selection:bg-crimson selection:text-white">
+    <noscript>
+      <main>
+        <h1>MUIRO Fashion Lookbooks</h1>
+        <p>MUIRO connects fashion moodboards with the products featured in each look. Explore editorial outfit ideas and follow direct links to participating retail partners.</p>
+        <p>Retailers control their own prices, stock, and product availability. The interactive lookbook requires JavaScript.</p>
+      </main>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

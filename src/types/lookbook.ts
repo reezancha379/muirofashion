@@ -4,9 +4,12 @@ export interface Lookbook {
   board: string;
   category: string;
   cover: string;
+  videoUrl?: string;
+  videoCaptionsUrl?: string;
   frame?: string;
   description: string;
   pieces: string[];
+  pieceCovers?: Record<string, string>;
   views: number;
   likes: number;
   featured?: boolean;
@@ -14,6 +17,9 @@ export interface Lookbook {
   isTrending?: boolean;
   authorNote?: string;
   season?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
 }
 
 export interface HeroSlide {

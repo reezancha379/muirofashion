@@ -354,15 +354,58 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  // --- API: Managed Categories ---
+  app.get('/api/categories', (req, res) => {
+    res.json(store.getCategories());
+  });
+
+  app.post('/api/categories', requireAdmin, (req, res) => {
+    try {
+      const created = store.addCategory({
+        name: String(req.body?.name || ''),
+        slug: String(req.body?.slug || ''),
+        description: String(req.body?.description || '')
+      });
+      res.status(201).json(created);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Could not create category' });
+    }
+  });
+
+  app.put('/api/categories/:id', requireAdmin, (req, res) => {
+    try {
+      const updated = store.updateCategory(req.params.id, req.body || {});
+      if (!updated) return res.status(404).json({ error: 'Category not found' });
+      res.json(updated);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Could not update category' });
+    }
+  });
+
+  app.delete('/api/categories/:id', requireAdmin, (req, res) => {
+    const category = store.getCategories().find(item => item.id === req.params.id);
+    if (!category) return res.status(404).json({ error: 'Category not found' });
+    const productsAssigned = store.getProducts().filter(product => product.category.trim().toLocaleLowerCase() === category.name.trim().toLocaleLowerCase()).length;
+    const lookbooksAssigned = store.getLookbooks().filter(lookbook => lookbook.category.trim().toLocaleLowerCase() === category.name.trim().toLocaleLowerCase()).length;
+    if (productsAssigned + lookbooksAssigned > 0) {
+      return res.status(409).json({ error: `Category is assigned to ${productsAssigned} product${productsAssigned === 1 ? '' : 's'} and ${lookbooksAssigned} lookbook${lookbooksAssigned === 1 ? '' : 's'}. Reassign content before deleting it.` });
+    }
+    if (!store.deleteCategory(req.params.id)) return res.status(404).json({ error: 'Category not found' });
+    res.json({ success: true });
+  });
+
   // --- API: Products ---
   app.get('/api/products', (req, res) => {
     res.json(store.getProducts());
   });
 
   app.post('/api/products', requireAdmin, (req, res) => {
-    const { title, price, board, category, image, description, affiliateUrl, merchantId, affiliateProgramId, commissionRate, badge } = req.body || {};
+    const { title, price, board, category, image, imageAlt, description, affiliateUrl, merchantId, affiliateProgramId, commissionRate, badge } = req.body || {};
     if (!title || !image || !affiliateUrl || !merchantId || !affiliateProgramId) {
       return res.status(400).json({ error: 'Title, image, affiliateUrl, merchant, and affiliate program are required' });
+    }
+    if (imageAlt !== undefined && (typeof imageAlt !== 'string' || imageAlt.length > 250)) {
+      return res.status(400).json({ error: 'Image alt text must be 250 characters or fewer' });
     }
 
     const { valid, safeUrl, reason } = sanitizeAffiliateUrl(affiliateUrl);
@@ -387,6 +430,7 @@ async function startServer() {
       board: board || 'Curated Edit',
       category: category || 'Fashion',
       image: String(image).trim(),
+      imageAlt: String(imageAlt || '').trim(),
       description: String(description || ''),
       affiliateUrl: safeUrl,
       merchant: merchantRecord.name,
@@ -405,6 +449,13 @@ async function startServer() {
 
   app.put('/api/products/:id', requireAdmin, (req, res) => {
     const updates = { ...req.body };
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'imageAlt')) {
+      if (typeof updates.imageAlt !== 'string' || updates.imageAlt.length > 250) {
+        return res.status(400).json({ error: 'Image alt text must be 250 characters or fewer' });
+      }
+      updates.imageAlt = updates.imageAlt.trim();
+    }
 
     if (Object.prototype.hasOwnProperty.call(updates, 'affiliateUrl')) {
       const { valid, safeUrl, reason } = sanitizeAffiliateUrl(updates.affiliateUrl);

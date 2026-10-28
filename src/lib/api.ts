@@ -1,12 +1,15 @@
-import { Lookbook, Product, Testimonial, AnalyticsStats, SiteSettings, HeroSlide, AffiliateProgram, Merchant } from '@/types';
+import { Lookbook, Product, ProductCategory, Testimonial, AnalyticsStats, SiteSettings, HeroSlide, AffiliateProgram, Merchant } from '@/types';
 import { hasBackend, readOrSnapshot, STATIC_WRITE_ERROR } from './staticData';
 import { imageSource, heroFallbackSource, testimonialAvatarSource } from './imageModel';
+import { apiFetch, canSendPublicEvents } from './apiTransport';
 
 // ---------------------------------------------------------------------------
 // Admin session handling
 //
-// The server is authoritative: every mutating request carries a signed Bearer
-// token issued by POST /api/admin/verify. The browser only mirrors UI state,
+// The server is authoritative: every mutating request carries a signed MUIRO
+// session issued by POST /api/admin/verify. Supabase requests use a custom
+// header, separate from the gateway's publishable project key.
+// The browser only mirrors UI state,
 // and any 401 drops the token and notifies the shell so it re-prompts instead
 // of showing an admin view that can no longer write.
 // ---------------------------------------------------------------------------
@@ -29,12 +32,16 @@ export function setAdminToken(token: string | null): void {
   }
 }
 
-/** Wraps fetch with the session token and broadcasts expiry to the shell. */
-async function authFetch(url: string, init: RequestInit = {}): Promise<Response> {  const token = getAdminToken();
-  const headers = new Headers(init.headers);
-  if (token) headers.set('Authorization', `Bearer ${token}`);
+/** Wraps the shared transport with the session token and broadcasts expiry. */
+async function authFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const res = await apiFetch(url, init, getAdminToken());
 
-  const res = await fetch(url, { ...init, headers });
+  const publication = res.headers.get('x-muiro-publication');
+  if (publication === 'pending') {
+    window.dispatchEvent(new CustomEvent('muiro:publication-pending'));
+  } else if (publication === 'published') {
+    window.dispatchEvent(new CustomEvent('muiro:publication-synced'));
+  }
 
   if (res.status === 401) {
     setAdminToken(null);
@@ -219,7 +226,7 @@ export const api = {
   async verifyAdminCredential(credential: string): Promise<boolean> {
     lastVerifyError = null;
     try {
-      const res = await fetch('/api/admin/verify', {
+      const res = await apiFetch('/api/admin/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential })
@@ -373,6 +380,31 @@ export const api = {
     if (!res.ok) throw new Error(body?.error || 'Cannot delete merchant');
   },
 
+  // Managed content categories
+  async getCategories(): Promise<ProductCategory[]> {
+    return readOrSnapshot<ProductCategory[]>(() => authFetch('/api/categories'), (snapshot) => snapshot.categories || [], 'Failed to fetch categories');
+  },
+  async createCategory(data: Pick<ProductCategory, 'name' | 'slug' | 'description'>): Promise<ProductCategory> {
+    await requireWriteBackend();
+    const res = await authFetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const body = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(body?.error || 'Failed to create category');
+    return body as ProductCategory;
+  },
+  async updateCategory(id: string, data: Partial<Pick<ProductCategory, 'name' | 'slug' | 'description'>>): Promise<ProductCategory> {
+    await requireWriteBackend();
+    const res = await authFetch(`/api/categories/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const body = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(body?.error || 'Failed to update category');
+    return body as ProductCategory;
+  },
+  async deleteCategory(id: string): Promise<void> {
+    await requireWriteBackend();
+    const res = await authFetch(`/api/categories/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const body = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(body?.error || 'Cannot delete category');
+  },
+
   // Lookbooks
   async getLookbooks(): Promise<Lookbook[]> {
     const list = await readOrSnapshot<Lookbook[]>(() => authFetch('/api/lookbooks'), (s) => s.lookbooks, 'Failed to fetch lookbooks');
@@ -495,23 +527,27 @@ export const api = {
 
   // Impression Tracker
   async recordImpression(lookId?: string): Promise<void> {
-    try {
-      await fetch('/api/impression', {
+    if (!canSendPublicEvents()) return;
+    void apiFetch('/api/impression', {
         method: 'POST',
+        keepalive: true,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lookId })
+      }).catch(() => {
+        // Tracking is best-effort and must not delay page rendering.
       });
-    } catch {
-      // Non-blocking
-    }
   },
 
   // Secure Affiliate Click Handler
-  async handleAffiliateClick(productId: string, lookId?: string, source = 'web_lookbook'): Promise<{ safeUrl: string; clickId: string; merchant: string }> {
-    const res = await authFetch('/api/click', {
+  async handleAffiliateClick(productId: string, lookId?: string, source = 'web_lookbook', affiliateUrl = ''): Promise<{ safeUrl: string; clickId: string; merchant: string }> {
+    if (!canSendPublicEvents()) {
+      return { safeUrl: affiliateUrl, clickId: '', merchant: '' };
+    }
+    const res = await apiFetch('/api/click', {
       method: 'POST',
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId, lookId, source })
+      body: JSON.stringify({ productId, lookId, source, affiliateUrl })
     });
     if (!res.ok) {
       const err = await res.json();

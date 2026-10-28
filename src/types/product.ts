@@ -6,6 +6,9 @@ export interface Product {
   board: string;
   category: string;
   image: string;
+  imageAlt?: string;
+  videoUrl?: string;
+  videoCaptionsUrl?: string;
   description: string;
   affiliateUrl: string;
   merchant: string;
@@ -19,4 +22,7 @@ export interface Product {
   featured?: boolean;
   isNewlyAdded?: boolean;
   isTrending?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
 }

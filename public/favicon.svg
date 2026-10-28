@@ -1,48 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#141210" />
-      <stop offset="100%" stop-color="#000000" />
-    </linearGradient>
-    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fdfbf7" />
-      <stop offset="100%" stop-color="#e8e2dc" />
-    </linearGradient>
-  </defs>
-
-  <!-- Background rounded squircle for tab contrast -->
-  <rect width="64" height="64" rx="16" fill="url(#bgGrad)" />
-  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15.25" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="1.5" />
-
-  <!-- Haute Couture Hanger Hook -->
-  <path d="M32 9 C30 9 28.5 10.5 28.5 12.5 C28.5 14.5 30 16 32 16 L32 19" 
-        fill="none" stroke="url(#goldAccent)" stroke-width="2" stroke-linecap="round" />
-  
-  <!-- Hanger Shoulders -->
-  <path d="M22 22 L32 19 L42 22" 
-        fill="none" stroke="url(#goldAccent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-
-  <!-- Haute Couture Dress Silhouette -->
-  <!-- Bodice: Strapless sculpted sweetheart cut with cinched waist -->
-  <path d="M24 23 
-           C26 23 28 25 32 25 
-           C36 25 38 23 40 23 
-           L38.5 32 
-           C37 36 35.5 37 34 37.5 
-           L34 38
-           C38 41 46 47 48 55 
-           L16 55 
-           C18 47 26 41 30 38
-           L30 37.5
-           C28.5 37 27 36 25.5 32 
-           Z" 
-        fill="url(#goldAccent)" />
-
-  <!-- Dress Center Slit & Drape Accents -->
-  <path d="M32 37.5 L32 55" stroke="#141210" stroke-width="1.75" stroke-linecap="round" />
-  <path d="M27 44 C28.5 48 29.5 52 30 55" stroke="#141210" stroke-width="1.25" stroke-linecap="round" opacity="0.6" />
-  <path d="M37 44 C35.5 48 34.5 52 34 55" stroke="#141210" stroke-width="1.25" stroke-linecap="round" opacity="0.6" />
-
-  <!-- Subtle Couture Belt / Waist Cinch Accent -->
-  <path d="M28 37.5 L36 37.5" stroke="#141210" stroke-width="2" stroke-linecap="round" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="MUIRO">
+  <rect width="64" height="64" rx="12" fill="#F7F5F2"/>
+  <text x="32" y="47" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="47" font-weight="700" letter-spacing="-3" fill="#171416">M</text>
+  <rect x="26" y="53" width="12" height="2.5" rx="1.25" fill="#9B1B36"/>
 </svg>

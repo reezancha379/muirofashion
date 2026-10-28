@@ -9,3 +9,6 @@ public/uploads/
 *.log
 .DS_Store
 .vscode/
+# Local runtime state includes credentials and visitor analytics.
+data/.store.runtime.json
+data/.store.runtime.json.tmp

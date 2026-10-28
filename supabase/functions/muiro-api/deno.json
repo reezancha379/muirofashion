@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": false,
+    "lib": ["deno.ns", "dom", "dom.iterable", "esnext"]
+  },
+  "fmt": {
+    "lineWidth": 120,
+    "semiColons": true,
+    "singleQuote": false
+  }
+}

@@ -1,71 +1,93 @@
 @import "tailwindcss";
 
+@theme {
+  --color-paper: #F7F5F2;
+  --color-ink: #171416;
+  --color-crimson: #9B1B36;
+  --color-plum: #291B31;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-editorial: Georgia, 'Times New Roman', serif;
+}
+
 @layer base {
   :root {
-    --bg: #fafaf9;
-    --surface: #ffffff;
-    --ink: #0f172a;
-    --muted: #475569;
-    --line: #e2e8f0;
-    --soft: #f1f5f9;
-    --accent: #0f172a;
-    --accent-gold: #f59e0b;
+    --bg: #F7F5F2;
+    --surface: #FFFFFF;
+    --ink: #171416;
+    --muted: #6B6569;
+    --line: #E5E0DC;
+    --soft: #F0EDEA;
+    --accent: #9B1B36;
+    --plum: #291B31;
+    --accent-gold: #9B1B36;
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
-    font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--bg);
     color: var(--ink);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  *:focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: #fff;
+  }
 }
 
-.font-casual {
-  font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, sans-serif;
-}
-
+.font-casual,
 .font-display {
-  font-family: 'Urbanist', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
 .font-serif-editorial {
-  font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, sans-serif;
+  font-family: Georgia, 'Times New Roman', serif;
 }
 
-/* Horizontal slide utilities */
 .slider-container {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Custom smooth scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--soft);
 }
 
-/* Hide scrollbar utility */
+::-webkit-scrollbar-thumb {
+  background: #C6BEC3;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-/* Editorial Skeleton Shimmer Effect */
 @keyframes shimmer-sweep {
   100% {
     transform: translateX(100%);
@@ -75,7 +97,7 @@
 .shimmer-box {
   position: relative;
   overflow: hidden;
-  background-color: #ede6df;
+  background-color: var(--soft);
 }
 
 .shimmer-box::after {
@@ -90,4 +112,15 @@
   );
   animation: shimmer-sweep 1.8s infinite;
   content: '';
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -80,6 +80,14 @@ export const LookDetailModal: React.FC<LookDetailModalProps> = ({
                     <span>Zoom In</span>
                   </button>
                 </div>
+                {look.videoUrl && (
+                  <div className="mt-4 overflow-hidden rounded-xl border border-[#e8e2dc] bg-black">
+                    <video controls preload="none" playsInline poster={look.cover} aria-label={`${look.title} outfit video`} className="block w-full aspect-video">
+                      <source src={look.videoUrl} />
+                      {look.videoCaptionsUrl && <track kind="captions" src={look.videoCaptionsUrl} srcLang="en" label="English" default />}
+                    </video>
+                  </div>
+                )}
               </div>
 
               {/* Story Details Column */}
@@ -161,7 +169,7 @@ export const LookDetailModal: React.FC<LookDetailModalProps> = ({
                   {pieces.map(product => (
                     <ProductCard
                       key={product.id}
-                      product={product}
+                      product={{ ...product, image: look.pieceCovers?.[product.id] || product.image }}
                       lookId={look.id}
                       isSaved={wishlist.includes(product.id)}
                       onToggleSave={onToggleWishlist}

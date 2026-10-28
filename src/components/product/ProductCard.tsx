@@ -23,25 +23,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const handleShopClick = async (e: React.MouseEvent) => {
+  const handleShopClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (isRedirecting) return;
 
-    // Claim the new tab while the click gesture is still live; it is filled
-    // in with the server-validated URL once tracking resolves. Doing this
-    // before the `await` is what keeps popup blockers from swallowing the click.
+    // Claim the new tab while the click gesture is still live and navigate from
+    // the already-sanitized public snapshot. Tracking never holds up shoppers.
     const navigate = beginAffiliateNavigation();
-
-    try {
-      setIsRedirecting(true);
-      const result = await api.handleAffiliateClick(product.id, lookId, sourceContext);
-      navigate(result.safeUrl);
-    } catch (err) {
-      console.error('Click error:', err);
-      navigate(product.affiliateUrl);
-    } finally {
-      setTimeout(() => setIsRedirecting(false), 1200);
-    }
+    setIsRedirecting(true);
+    navigate(product.affiliateUrl);
+    void api.handleAffiliateClick(product.id, lookId, sourceContext, product.affiliateUrl)
+      .catch((err) => console.warn('Affiliate tracking unavailable:', err));
+    setTimeout(() => setIsRedirecting(false), 1200);
   };
 
   return (
@@ -51,12 +44,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       {/* Image container */}
       <div className="relative aspect-[3/4] bg-[#f4efe9] overflow-hidden">
-        <img
-          src={product.image}
-          alt={product.title}
-          loading="lazy"
-          className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-        />
+        {product.videoUrl ? (
+          <video
+            controls
+            preload="none"
+            playsInline
+            poster={product.image}
+            aria-label={`${product.title} product video`}
+            className="w-full h-full object-cover object-top"
+          >
+            <source src={product.videoUrl} />
+            {product.videoCaptionsUrl && <track kind="captions" src={product.videoCaptionsUrl} srcLang="en" label="English" default />}
+          </video>
+        ) : (
+          <img
+            src={product.image}
+            alt={product.imageAlt?.trim() || product.title}
+            loading="lazy"
+            className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+          />
+        )}
 
         {/* Action icons on image hover/top */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
@@ -64,7 +71,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             onClick={() => onToggleSave(product.id)}
             className={`w-9 h-9 rounded-full flex items-center justify-center transition shadow-md backdrop-blur-md ${
               isSaved
-                ? 'bg-[#181512] text-white'
+                ? 'bg-plum text-white'
                 : 'bg-white/85 text-[#181512] hover:bg-white hover:scale-105'
             }`}
             aria-label={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
@@ -74,7 +81,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </button>
 
           <button
-            onClick={() => onInspect(product.image, product.title)}
+            onClick={() => onInspect(product.image, product.imageAlt?.trim() || product.title)}
             className="w-9 h-9 rounded-full bg-white/85 hover:bg-white hover:scale-105 text-[#181512] flex items-center justify-center transition shadow-md backdrop-blur-md opacity-80 group-hover:opacity-100"
             title="Inspect fabric & details"
             aria-label="Inspect fabric"
@@ -88,7 +95,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="p-4 flex-1 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between text-xs text-[#6e6761] uppercase tracking-wider mb-1">
-            <span>{product.board || product.category}</span>
+            <span>{product.category || product.board}</span>
             {product.rating && (
               <span className="flex items-center gap-1 font-semibold text-[#181512]">
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
@@ -115,8 +122,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             disabled={isRedirecting}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
               isRedirecting
-                ? 'bg-[#181512]/80 text-white cursor-wait'
-                : 'bg-[#181512] text-white hover:bg-black active:scale-[0.98] shadow-sm hover:shadow'
+                ? 'bg-plum/90 text-white cursor-wait'
+                : 'bg-crimson text-white hover:bg-plum active:scale-[0.98] shadow-sm hover:shadow'
             }`}
           >
             {isRedirecting ? (

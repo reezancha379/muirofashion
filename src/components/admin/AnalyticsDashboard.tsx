@@ -141,9 +141,9 @@ export const AnalyticsDashboard: React.FC = () => {
           <div className="text-3xl font-bold font-serif-editorial text-[#181512] mb-1">
             {stats.totalClicks.toLocaleString()}
           </div>
-          <div className="text-xs text-emerald-700 flex items-center gap-1 font-medium">
+          <div className="text-xs text-[#6e6761] flex items-center gap-1 font-medium">
             <TrendingUp className="w-3 h-3" />
-            <span>+18.4% vs last week</span>
+            <span>{stats.totalClicks === 0 && stats.totalImpressions === 0 ? 'Fresh analytics · collecting data' : 'Activity since analytics reset'}</span>
           </div>
         </div>
 

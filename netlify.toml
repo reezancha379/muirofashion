@@ -1,20 +1,15 @@
-# MUIRO - Netlify configuration
+# MUIRO public storefront: static Netlify build; owner API lives in Supabase.
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command = "npm run build:static"
+  publish = "site"
 
 [build.environment]
   NODE_VERSION = "20"
-  VITE_PASSCODE = "482917"
-  VITE_TOTP_SECRET = "MTWALXMFQ52HTGEQ3L3HVLFPZJSFKT3M"
 
-# Single-page app routing routing rule
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Storefront views are query-driven, not pathname routes. Leave unknown paths
+# unmatched so Netlify serves the custom 404.html with a real 404 status.
 
-# Strict MIME type headers checking
+# Strict MIME type headers for production assets.
 [[headers]]
   for = "/assets/*.js"
   [headers.values]
@@ -25,8 +20,10 @@
   for = "/assets/*.css"
   [headers.values]
     Content-Type = "text/css; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
 
 [[headers]]
   for = "/*"
   [headers.values]
     X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

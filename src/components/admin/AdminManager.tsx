@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Lookbook, Product, Testimonial, HeroSlide, Merchant, AffiliateProgram } from '@/types';
+import { Lookbook, Product, ProductCategory, Testimonial, HeroSlide, Merchant, AffiliateProgram, SiteSettings } from '@/types';
 import { AffiliateCommerceManager } from './AffiliateCommerceManager';
+import { CategoryManager } from './CategoryManager';
 import { ImageFieldWithUpload } from './ImageFieldWithUpload';
 import { api } from '@/lib/api';
 import {
@@ -49,6 +50,14 @@ interface AdminManagerProps {
   onLockSession?: () => void;
 }
 
+type SiteSeoForm = Required<Pick<SiteSettings, 'seoTitle' | 'seoDescription' | 'seoKeywords' | 'ogImage'>>;
+const SITE_SEO_DEFAULTS: SiteSeoForm = {
+  seoTitle: 'MUIRO',
+  seoDescription: 'Explore MUIRO fashion lookbooks and outfit ideas, discover the products featured in each edit, and shop through direct links to retail partners.',
+  seoKeywords: 'MUIRO, fashion lookbooks, outfit ideas, shoppable fashion, curated style',
+  ogImage: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1200&q=80',
+};
+
 export const AdminManager: React.FC<AdminManagerProps> = ({
   lookbooks,
   products,
@@ -57,12 +66,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
   onRefreshData,
   onLockSession
 }) => {
-  const [activeTab, setActiveTab] = useState<'lookbooks' | 'products' | 'commerce' | 'testimonials' | 'herosection' | 'security'>('lookbooks');
+  const [activeTab, setActiveTab] = useState<'lookbooks' | 'products' | 'categories' | 'commerce' | 'testimonials' | 'herosection' | 'seo' | 'security'>('lookbooks');
 
   // Hero Slides List State
   const [heroSlidesList, setHeroSlidesList] = useState<HeroSlide[]>(heroSlides);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [affiliatePrograms, setAffiliatePrograms] = useState<AffiliateProgram[]>([]);
+  const [categoryRecords, setCategoryRecords] = useState<ProductCategory[]>([]);
+  const [siteSeo, setSiteSeo] = useState<SiteSeoForm>(SITE_SEO_DEFAULTS);
+  const [siteSeoLoading, setSiteSeoLoading] = useState(true);
 
   const fetchHeroSlides = async () => {
     try {
@@ -107,6 +119,22 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
         setMerchants([]);
         setAffiliatePrograms([]);
       });
+  }, []);
+
+  useEffect(() => {
+    api.getCategories().then(setCategoryRecords).catch(() => setCategoryRecords([]));
+  }, []);
+
+  useEffect(() => {
+    api.getSettings()
+      .then(settings => setSiteSeo({
+        seoTitle: settings.seoTitle || SITE_SEO_DEFAULTS.seoTitle,
+        seoDescription: settings.seoDescription || SITE_SEO_DEFAULTS.seoDescription,
+        seoKeywords: settings.seoKeywords || SITE_SEO_DEFAULTS.seoKeywords,
+        ogImage: settings.ogImage || SITE_SEO_DEFAULTS.ogImage,
+      }))
+      .catch(() => {})
+      .finally(() => setSiteSeoLoading(false));
   }, []);
 
   useEffect(() => {
@@ -159,9 +187,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
   const [lbBoard, setLbBoard] = useState('');
   const [lbCategory, setLbCategory] = useState('Autumn Essentials');
   const [lbCover, setLbCover] = useState('');
+  const [lbVideoUrl, setLbVideoUrl] = useState('');
+  const [lbVideoCaptionsUrl, setLbVideoCaptionsUrl] = useState('');
+  const [lbSeoTitle, setLbSeoTitle] = useState('');
+  const [lbSeoDescription, setLbSeoDescription] = useState('');
+  const [lbSeoKeywords, setLbSeoKeywords] = useState('');
   const [lbDescription, setLbDescription] = useState('');
   const [lbAuthorNote, setLbAuthorNote] = useState('');
   const [lbPieces, setLbPieces] = useState<string[]>([]);
+  const [lbPieceCovers, setLbPieceCovers] = useState<Record<string, string>>({});
   const [lbPieceSearch, setLbPieceSearch] = useState('');
   const [lbPieceCategory, setLbPieceCategory] = useState('all');
   const [lbPieceMerchant, setLbPieceMerchant] = useState('all');
@@ -178,6 +212,12 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
   const [pMerchantId, setPMerchantId] = useState('');
   const [pAffiliateProgramId, setPAffiliateProgramId] = useState('');
   const [pImage, setPImage] = useState('');
+  const [pImageAlt, setPImageAlt] = useState('');
+  const [pVideoUrl, setPVideoUrl] = useState('');
+  const [pVideoCaptionsUrl, setPVideoCaptionsUrl] = useState('');
+  const [pSeoTitle, setPSeoTitle] = useState('');
+  const [pSeoDescription, setPSeoDescription] = useState('');
+  const [pSeoKeywords, setPSeoKeywords] = useState('');
   const [pAffiliateUrl, setPAffiliateUrl] = useState('');
   const [pCommissionRate, setPCommissionRate] = useState(10);
   const [pDescription, setPDescription] = useState('');
@@ -233,9 +273,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
           description: lbDescription,
           authorNote: lbAuthorNote,
           pieces: lbPieces,
+          pieceCovers: lbPieceCovers,
           isNewlyAdded: lbIsNewlyAdded,
           isTrending: lbIsTrending,
-          featured: lbFeatured
+          featured: lbFeatured,
+          videoUrl: lbVideoUrl,
+          videoCaptionsUrl: lbVideoCaptionsUrl,
+          seoTitle: lbSeoTitle,
+          seoDescription: lbSeoDescription,
+          seoKeywords: lbSeoKeywords
         });
         showNotice('Lookbook updated successfully');
         setEditingLookbook(null);
@@ -248,9 +294,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
           description: lbDescription,
           authorNote: lbAuthorNote,
           pieces: lbPieces,
+          pieceCovers: lbPieceCovers,
           isNewlyAdded: lbIsNewlyAdded,
           isTrending: lbIsTrending,
-          featured: lbFeatured
+          featured: lbFeatured,
+          videoUrl: lbVideoUrl,
+          videoCaptionsUrl: lbVideoCaptionsUrl,
+          seoTitle: lbSeoTitle,
+          seoDescription: lbSeoDescription,
+          seoKeywords: lbSeoKeywords
         });
         showNotice('New lookbook published');
         setIsAddingLookbook(false);
@@ -268,9 +320,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
     setLbBoard(look.board);
     setLbCategory(look.category);
     setLbCover(look.cover);
+    setLbVideoUrl(look.videoUrl || '');
+    setLbVideoCaptionsUrl(look.videoCaptionsUrl || '');
+    setLbSeoTitle(look.seoTitle || '');
+    setLbSeoDescription(look.seoDescription || '');
+    setLbSeoKeywords(look.seoKeywords || '');
     setLbDescription(look.description);
     setLbAuthorNote(look.authorNote || '');
     setLbPieces(look.pieces || []);
+    setLbPieceCovers(look.pieceCovers || {});
     setLbIsNewlyAdded(look.isNewlyAdded ?? true);
     setLbIsTrending(look.isTrending ?? false);
     setLbFeatured(look.featured ?? true);
@@ -319,9 +377,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
     setLbBoard('Autumn Fashion | Fall Outfit Ideas');
     setLbCategory('Autumn Essentials');
     setLbCover('/hero-1.jpg');
+    setLbVideoUrl('');
+    setLbVideoCaptionsUrl('');
+    setLbSeoTitle('');
+    setLbSeoDescription('');
+    setLbSeoKeywords('');
     setLbDescription('');
     setLbAuthorNote('');
     setLbPieces([]);
+    setLbPieceCovers({});
     setLbPieceSearch('');
     setLbPieceCategory('all');
     setLbPieceMerchant('all');
@@ -359,12 +423,18 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
           merchantId: pMerchantId,
           affiliateProgramId: pAffiliateProgramId,
           image: pImage,
+          imageAlt: pImageAlt,
           affiliateUrl: pAffiliateUrl,
           commissionRate: Number(pCommissionRate),
           description: pDescription,
           isNewlyAdded: pIsNewlyAdded,
           isTrending: pIsTrending,
-          featured: pFeatured
+          featured: pFeatured,
+          videoUrl: pVideoUrl,
+          videoCaptionsUrl: pVideoCaptionsUrl,
+          seoTitle: pSeoTitle,
+          seoDescription: pSeoDescription,
+          seoKeywords: pSeoKeywords
         });
         showNotice('Product updated');
         setEditingProduct(null);
@@ -378,12 +448,18 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
           merchantId: pMerchantId,
           affiliateProgramId: pAffiliateProgramId,
           image: pImage,
+          imageAlt: pImageAlt,
           affiliateUrl: pAffiliateUrl,
           commissionRate: Number(pCommissionRate),
           description: pDescription,
           isNewlyAdded: pIsNewlyAdded,
           isTrending: pIsTrending,
-          featured: pFeatured
+          featured: pFeatured,
+          videoUrl: pVideoUrl,
+          videoCaptionsUrl: pVideoCaptionsUrl,
+          seoTitle: pSeoTitle,
+          seoDescription: pSeoDescription,
+          seoKeywords: pSeoKeywords
         });
         showNotice('New shoppable product added');
         setIsAddingProduct(false);
@@ -403,6 +479,12 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
     setPMerchantId(prod.merchantId || merchants.find(m => m.name === prod.merchant)?.id || '');
     setPAffiliateProgramId(prod.affiliateProgramId || merchants.find(m => m.id === (prod.merchantId || merchants.find(m => m.name === prod.merchant)?.id))?.affiliateProgramId || '');
     setPImage(prod.image);
+    setPImageAlt(prod.imageAlt || '');
+    setPVideoUrl(prod.videoUrl || '');
+    setPVideoCaptionsUrl(prod.videoCaptionsUrl || '');
+    setPSeoTitle(prod.seoTitle || '');
+    setPSeoDescription(prod.seoDescription || '');
+    setPSeoKeywords(prod.seoKeywords || '');
     setPAffiliateUrl(prod.affiliateUrl);
     setPCommissionRate(prod.commissionRate || 10);
     setPDescription(prod.description || '');
@@ -419,6 +501,12 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
     setPMerchantId('');
     setPAffiliateProgramId('');
     setPImage('');
+    setPImageAlt('');
+    setPVideoUrl('');
+    setPVideoCaptionsUrl('');
+    setPSeoTitle('');
+    setPSeoDescription('');
+    setPSeoKeywords('');
     setPAffiliateUrl('');
     setPCommissionRate(10);
     setPDescription('');
@@ -680,6 +768,23 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
     setTimeout(() => setAuthTestResult(null), 4000);
   };
 
+  const handleSaveSiteSeo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const saved = await api.updateSettings(siteSeo);
+      setSiteSeo({
+        seoTitle: saved.seoTitle || SITE_SEO_DEFAULTS.seoTitle,
+        seoDescription: saved.seoDescription || SITE_SEO_DEFAULTS.seoDescription,
+        seoKeywords: saved.seoKeywords || SITE_SEO_DEFAULTS.seoKeywords,
+        ogImage: saved.ogImage || SITE_SEO_DEFAULTS.ogImage,
+      });
+      showNotice('Site SEO saved in Supabase; public static refresh requested.');
+      onRefreshData();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 font-casual">
       {/* Header */}
@@ -753,6 +858,18 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('categories')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap cursor-pointer ${
+            activeTab === 'categories'
+              ? 'border-[#181512] text-[#181512]'
+              : 'border-transparent text-[#6e6761] hover:text-[#181512]'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>Categories ({categoryRecords.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('commerce')}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap cursor-pointer ${
             activeTab === 'commerce'
@@ -786,6 +903,18 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
         >
           <Sliders className="w-4 h-4" />
           <span>Hero Slides ({heroSlidesList.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('seo')}
+          className={`flex items-center gap-2 px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap cursor-pointer ${
+            activeTab === 'seo'
+              ? 'border-[#181512] text-[#181512]'
+              : 'border-transparent text-[#6e6761] hover:text-[#181512]'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Site SEO</span>
         </button>
 
         <button
@@ -827,7 +956,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
           {isAddingLookbook && (
             <form onSubmit={handleSaveLookbook} className="bg-white p-6 rounded-2xl border border-[#e8e2dc] shadow-md mb-8">
               <h3 className="text-lg font-bold text-[#181512] mb-4">
-                {editingLookbook ? 'Edit Lookbook' : 'Create New Lookbook'}
+                {editingLookbook ? 'Edit Lookbook' : 'Create New Lookbook'} <span className="ml-2 text-[11px] font-normal text-[#8c827a]">ID: {editingLookbook?.id || 'assigned on save'}</span>
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -863,19 +992,31 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
                     value={lbCover}
                     onChange={setLbCover}
                     required
-                    hint="Paste an image URL or upload a file (stored at /uploads/… and rendered as the lookbook cover)."
+                    hint="Paste a public image URL or upload a file; live-site uploads are stored in Supabase Storage."
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Aesthetic Category</label>
-                  <input
-                    type="text"
+                  <label htmlFor="lookbook-category" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Aesthetic Category</label>
+                  <select
+                    id="lookbook-category"
+                    required
                     value={lbCategory}
                     onChange={e => setLbCategory(e.target.value)}
-                    placeholder="e.g. Autumn Essentials, K-Fashion Summer"
                     className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9]"
-                  />
+                  >
+                    {lbCategory && !categoryRecords.some(category => category.name === lbCategory) && <option value={lbCategory}>{lbCategory} (existing label)</option>}
+                    {categoryRecords.map(category => <option key={category.id} value={category.name}>{category.name}</option>)}
+                  </select>
+                  <p className="mt-1 text-[11px] text-[#8c827a]">Manage shared categories in the Categories tab.</p>
                 </div>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="lookbook-video-url" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Outfit Video URL</label>
+                <input id="lookbook-video-url" type="url" value={lbVideoUrl} onChange={e => setLbVideoUrl(e.target.value)} placeholder="https://…/outfit.mp4" className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9]" />
+                <p className="text-[11px] text-[#8c827a] mt-1">Optional direct MP4/WebM link. The URL is saved in Supabase with this lookbook; use a video host/CDN for the video file itself.</p>
+                <label htmlFor="lookbook-video-captions-url" className="block text-xs font-semibold uppercase text-[#6e6761] mt-3 mb-1">Captions track URL (WebVTT)</label>
+                <input id="lookbook-video-captions-url" type="url" value={lbVideoCaptionsUrl} onChange={e => setLbVideoCaptionsUrl(e.target.value)} placeholder="https://…/captions.vtt" className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9]" />
               </div>
 
               {/* Toggles */}
@@ -933,6 +1074,26 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
                 />
                 <p className="text-[11px] text-[#8c827a] mt-1">Shown only when you add a recommendation; keep it concise and editorial.</p>
               </div>
+
+              <details className="mb-5 rounded-xl border border-[#e8e2dc] bg-[#fcfbf9] p-4">
+                <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-[#181512]">Search metadata (optional)</summary>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label htmlFor="lookbook-seo-title" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Search title</label>
+                    <input id="lookbook-seo-title" maxLength={70} value={lbSeoTitle} onChange={e => setLbSeoTitle(e.target.value)} placeholder={lbTitle || 'MUIRO lookbook title'} className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-white" />
+                    <p className="text-[11px] text-[#8c827a] mt-1">{lbSeoTitle.length}/70 characters</p>
+                  </div>
+                  <div>
+                    <label htmlFor="lookbook-seo-keywords" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Keywords</label>
+                    <input id="lookbook-seo-keywords" maxLength={300} value={lbSeoKeywords} onChange={e => setLbSeoKeywords(e.target.value)} placeholder="Comma-separated topics" className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-white" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label htmlFor="lookbook-seo-description" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Search description</label>
+                    <textarea id="lookbook-seo-description" maxLength={180} rows={2} value={lbSeoDescription} onChange={e => setLbSeoDescription(e.target.value)} placeholder="A concise, accurate description of this lookbook" className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-white resize-y" />
+                    <p className="text-[11px] text-[#8c827a] mt-1">{lbSeoDescription.length}/180 characters</p>
+                  </div>
+                </div>
+              </details>
 
               {/* Pieces Selector — searchable/filterable so large product catalogs remain manageable */}
               <div className="mb-5">
@@ -1015,7 +1176,10 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
                       <button
                         type="button"
                         key={p.id}
-                        onClick={() => setLbPieces(prev => isSelected ? prev.filter(id => id !== p.id) : [...prev, p.id])}
+                        onClick={() => {
+                          setLbPieces(prev => isSelected ? prev.filter(id => id !== p.id) : [...prev, p.id]);
+                          if (isSelected) setLbPieceCovers(current => { const next = { ...current }; delete next[p.id]; return next; });
+                        }}
                         aria-pressed={isSelected}
                         className={`p-2 rounded-lg border text-left text-xs cursor-pointer transition flex items-center gap-2 min-w-0 ${
                           isSelected ? 'border-[#181512] bg-white font-bold shadow-xs' : 'border-[#e8e2dc] text-[#6e6761] hover:border-[#bdb4ab] hover:bg-white'
@@ -1034,6 +1198,34 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
                     <div className="col-span-full py-8 text-center text-xs text-[#8a8179]">No outfits match these filters.</div>
                   )}
                 </div>
+                {lbPieces.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-[#e8e2dc] bg-white p-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#181512]">Cover image for each linked piece</h4>
+                    <p className="text-[11px] text-[#8c827a] mt-1 mb-3">Each item uses its product image by default. Upload a lookbook-specific cover only when you want a different crop or detail; the image URL is stored against this lookbook and product ID.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {lbPieces.map(pieceId => {
+                        const product = products.find(item => item.id === pieceId);
+                        if (!product) return null;
+                        return (
+                          <div key={pieceId} className="min-w-0 rounded-lg border border-[#e8e2dc] p-3">
+                            <p className="text-xs font-semibold text-[#181512] mb-2 truncate">{product.title}</p>
+                            <ImageFieldWithUpload
+                              label={`Cover for ${product.title}`}
+                              value={lbPieceCovers[pieceId] || product.image}
+                              onChange={value => setLbPieceCovers(current => {
+                                const next = { ...current };
+                                if (!value || value === product.image) delete next[pieceId];
+                                else next[pieceId] = value;
+                                return next;
+                              })}
+                              hint="This lookbook-specific image overrides the product's default image only inside this lookbook."
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3">
@@ -1164,7 +1356,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
           {isAddingProduct && (
             <form onSubmit={handleSaveProduct} className="bg-white p-6 rounded-2xl border border-[#e8e2dc] shadow-md mb-8">
               <h3 className="text-lg font-bold text-[#181512] mb-4">
-                {editingProduct ? 'Edit Clothing Item' : 'Add New Clothing Piece'}
+                {editingProduct ? 'Edit Clothing Item' : 'Add New Clothing Piece'} <span className="ml-2 text-[11px] font-normal text-[#8c827a]">ID: {editingProduct?.id || 'assigned on save'}</span>
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -1227,8 +1419,19 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
                     value={pImage}
                     onChange={setPImage}
                     required
-                    hint="Paste an image URL or upload a file (stored at /uploads/… and rendered on the shop page)."
+                    hint="No JSON editing needed: save this form to store product details; live-site image uploads go to Supabase Storage."
                   />
+                  <label htmlFor="product-image-alt" className="mt-3 block text-xs font-semibold uppercase text-[#6e6761] mb-1">Accessible image description</label>
+                  <input
+                    id="product-image-alt"
+                    type="text"
+                    maxLength={250}
+                    value={pImageAlt}
+                    onChange={e => setPImageAlt(e.target.value)}
+                    placeholder="Describe the garment and visible details"
+                    className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9]"
+                  />
+                  <p className="mt-1 text-[11px] text-[#8c827a]">Used as the product image alternative text for screen readers.</p>
                 </div>
 
                 <div>
@@ -1256,14 +1459,18 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Category</label>
-                  <input
-                    type="text"
+                  <label htmlFor="product-category" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Category</label>
+                  <select
+                    id="product-category"
+                    required
                     value={pCategory}
                     onChange={e => setPCategory(e.target.value)}
-                    placeholder="e.g. Dresses, Tops, Shoes"
                     className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9]"
-                  />
+                  >
+                    {pCategory && !categoryRecords.some(category => category.name === pCategory) && <option value={pCategory}>{pCategory} (existing label)</option>}
+                    {categoryRecords.map(category => <option key={category.id} value={category.name}>{category.name}</option>)}
+                  </select>
+                  <p className="mt-1 text-[11px] text-[#8c827a]">Manage shared categories in the Categories tab.</p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Commission %</label>
@@ -1288,6 +1495,34 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
                   className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9] resize-y"
                 />
               </div>
+
+              <div className="mb-4">
+                <label htmlFor="product-video-url" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Product Video URL</label>
+                <input id="product-video-url" type="url" value={pVideoUrl} onChange={e => setPVideoUrl(e.target.value)} placeholder="https://…/product.mp4" className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9]" />
+                <p className="text-[11px] text-[#8c827a] mt-1">Optional direct MP4/WebM link. The URL is saved in Supabase with this product; use a video host/CDN for the video file itself.</p>
+                <label htmlFor="product-video-captions-url" className="block text-xs font-semibold uppercase text-[#6e6761] mt-3 mb-1">Captions track URL (WebVTT)</label>
+                <input id="product-video-captions-url" type="url" value={pVideoCaptionsUrl} onChange={e => setPVideoCaptionsUrl(e.target.value)} placeholder="https://…/captions.vtt" className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9]" />
+              </div>
+
+              <details className="mb-4 rounded-xl border border-[#e8e2dc] bg-[#fcfbf9] p-4">
+                <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-[#181512]">Search metadata (optional)</summary>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <label htmlFor="product-seo-title" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Search title</label>
+                    <input id="product-seo-title" maxLength={70} value={pSeoTitle} onChange={e => setPSeoTitle(e.target.value)} placeholder={pTitle || 'MUIRO product title'} className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-white" />
+                    <p className="text-[11px] text-[#8c827a] mt-1">{pSeoTitle.length}/70 characters</p>
+                  </div>
+                  <div>
+                    <label htmlFor="product-seo-keywords" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Keywords</label>
+                    <input id="product-seo-keywords" maxLength={300} value={pSeoKeywords} onChange={e => setPSeoKeywords(e.target.value)} placeholder="Comma-separated topics" className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-white" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label htmlFor="product-seo-description" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Search description</label>
+                    <textarea id="product-seo-description" maxLength={180} rows={2} value={pSeoDescription} onChange={e => setPSeoDescription(e.target.value)} placeholder="A concise, accurate description of this product" className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-white resize-y" />
+                    <p className="text-[11px] text-[#8c827a] mt-1">{pSeoDescription.length}/180 characters</p>
+                  </div>
+                </div>
+              </details>
 
               {/* Toggles for newly added and trendy */}
               <div className="flex gap-6 items-center p-3 bg-[#fcfbf9] border border-[#e8e2dc] rounded-xl mb-4">
@@ -1419,6 +1654,15 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
         <AffiliateCommerceManager onChanged={() => { onRefreshData(); api.getMerchants().then(setMerchants).catch(() => {}); }} />
       )}
 
+      {activeTab === 'categories' && (
+        <CategoryManager
+          categories={categoryRecords}
+          products={products}
+          lookbooks={lookbooks}
+          onChanged={categories => { setCategoryRecords(categories); onRefreshData(); }}
+        />
+      )}
+
       {/* --- TAB 4: TESTIMONIALS --- */}
       {activeTab === 'testimonials' && (
         <div>
@@ -1472,7 +1716,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
                   label="Reviewer Avatar"
                   value={tAvatar}
                   onChange={setTAvatar}
-                  hint="Paste an avatar image URL or upload a file (stored at /uploads/…)."
+                  hint="Paste a public avatar URL or upload a file; live-site uploads are stored in Supabase Storage."
                 />
               </div>
 
@@ -1651,7 +1895,7 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
                     value={hsImage}
                     onChange={setHsImage}
                     required
-                    hint="The image shown on the public Hero. Paste an image URL or upload a file (stored at /uploads/…)."
+                    hint="The image shown on the public hero. Paste a public URL or upload a file to Supabase Storage."
                   />
                 </div>
 
@@ -1880,7 +2124,44 @@ export const AdminManager: React.FC<AdminManagerProps> = ({
         </div>
       )}
 
-      {/* --- TAB 5: PASSCODE & SECURITY SETTINGS --- */}
+      {/* --- TAB 5: SITE SEO & SOCIAL METADATA --- */}
+      {activeTab === 'seo' && (
+        <div className="max-w-3xl space-y-6">
+          <div>
+            <h2 className="text-xl font-bold font-display text-[#181512]">Site Search & Social Metadata</h2>
+            <p className="text-xs text-[#6e6761] mt-1">These settings save to the Supabase CMS and are used in the next static publish for search description, keywords and social preview. The browser tab/site name stays exactly MUIRO.</p>
+            <p className="text-[11px] text-[#8c827a] mt-2" role="status">{siteSeoLoading ? 'Loading current metadata…' : 'Canonical URL stays on the existing MUIRO Netlify site.'}</p>
+          </div>
+          <form onSubmit={handleSaveSiteSeo} className="p-6 bg-white border border-[#e8e2dc] rounded-2xl shadow-xs space-y-5">
+            <div>
+              <label htmlFor="site-seo-title" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Social preview title</label>
+              <input id="site-seo-title" maxLength={70} required value={siteSeo.seoTitle} onChange={e => setSiteSeo(current => ({ ...current, seoTitle: e.target.value }))} className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9]" />
+              <p className="text-[11px] text-[#8c827a] mt-1">{siteSeo.seoTitle.length}/70 characters. Used for Open Graph and Twitter cards; the browser title remains MUIRO.</p>
+            </div>
+            <div>
+              <label htmlFor="site-seo-description" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Search description</label>
+              <textarea id="site-seo-description" maxLength={180} rows={3} required value={siteSeo.seoDescription} onChange={e => setSiteSeo(current => ({ ...current, seoDescription: e.target.value }))} className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9] resize-y" />
+              <p className="text-[11px] text-[#8c827a] mt-1">{siteSeo.seoDescription.length}/180 characters.</p>
+            </div>
+            <div>
+              <label htmlFor="site-seo-keywords" className="block text-xs font-semibold uppercase text-[#6e6761] mb-1">Keywords</label>
+              <input id="site-seo-keywords" maxLength={300} value={siteSeo.seoKeywords} onChange={e => setSiteSeo(current => ({ ...current, seoKeywords: e.target.value }))} className="w-full p-2.5 border border-[#e8e2dc] rounded-lg text-sm bg-[#fcfbf9]" />
+              <p className="text-[11px] text-[#8c827a] mt-1">Optional comma-separated topics, up to 300 characters.</p>
+            </div>
+            <ImageFieldWithUpload label="Social Preview Image" value={siteSeo.ogImage} onChange={value => setSiteSeo(current => ({ ...current, ogImage: value }))} hint="Upload stores the image in Supabase Storage; saving this form stores its public URL in CMS metadata." />
+            <div className="rounded-lg border border-[#e8e2dc] bg-[#fcfbf9] p-3 text-xs text-[#6e6761]">
+              Canonical site: <strong className="text-[#181512]">https://muirofashion.netlify.app/</strong>
+            </div>
+            <div className="flex justify-end">
+              <button type="submit" className="px-5 py-2.5 bg-[#181512] hover:bg-black text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs">
+                <Save className="w-3.5 h-3.5" /> Save Site SEO
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* --- TAB 6: PASSCODE & SECURITY SETTINGS --- */}
       {activeTab === 'security' && (
         <div className="max-w-3xl space-y-6">
           <div>

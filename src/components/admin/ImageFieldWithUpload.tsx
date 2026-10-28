@@ -15,11 +15,9 @@ interface ImageFieldWithUploadProps {
 }
 
 /**
- * A URL text input + genuine file upload control, used for every Admin image
- * field. Uploads are sent to the server (POST /api/upload), stored under
- * public/uploads/ and returned as a `/uploads/<file>` URL that the editable
- * text field receives, exactly like a hand-typed URL. The same value is what
- * the public renderer reads back after persist.
+ * Shared admin image input. Uploads use the configured MUIRO API backend;
+ * production uploads are stored in Supabase Storage and return a public URL.
+ * The parent form saves that URL alongside the associated CMS record.
  */
 export const ImageFieldWithUpload: React.FC<ImageFieldWithUploadProps> = ({
   label,
@@ -114,7 +112,7 @@ export const ImageFieldWithUpload: React.FC<ImageFieldWithUploadProps> = ({
                 setUrlTouched(true);
               }}
               onBlur={() => setUrlTouched(true)}
-              placeholder={placeholder || 'Paste an image URL, e.g. /uploads/photo.webp'}
+              placeholder={placeholder || 'Paste a public image URL or upload from your device'}
               className={`w-full p-2.5 border rounded-lg text-sm bg-[#fcfbf9] text-[#181512] outline-none ${
                 isUrlInvalid
                   ? 'border-rose-400 focus:border-rose-400 bg-rose-50/30'
@@ -140,8 +138,8 @@ export const ImageFieldWithUpload: React.FC<ImageFieldWithUploadProps> = ({
           />
           {isUrlInvalid && (
             <p className="text-[11px] text-rose-600 mt-1">
-              Enter a site-relative path (e.g. /uploads/x.jpg) or a valid http(s) image URL —
-              Windows filesystem paths are not valid here.
+              Enter a site-relative asset path or a valid public http(s) image URL —
+              local filesystem paths are not valid here.
             </p>
           )}
           {uploadError && (
