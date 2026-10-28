@@ -1,6 +1,6 @@
 # MUIRO public storefront: static Netlify build; owner API lives in Supabase.
 [build]
-  command = "npm run build:static"
+  command = ""
   publish = "site"
 
 [build.environment]
