@@ -12,3 +12,6 @@ public/uploads/
 # Local runtime state includes credentials and visitor analytics.
 data/.store.runtime.json
 data/.store.runtime.json.tmp
+
+# Local Netlify folder
+.netlify
