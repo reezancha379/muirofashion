@@ -7,7 +7,7 @@ const SUPABASE_PUBLISHABLE_KEY = (
 ).trim();
 
 export function isSupabaseBackendConfigured(): boolean {
-  return Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+  return Boolean(SUPABASE_URL);
 }
 
 export function isSupabaseProjectUrlConfigured(): boolean {
@@ -38,7 +38,9 @@ export async function apiFetch(
 ): Promise<Response> {
   const headers = new Headers(init.headers);
   if (isSupabaseBackendConfigured()) {
-    headers.set('apikey', SUPABASE_PUBLISHABLE_KEY);
+    if (SUPABASE_PUBLISHABLE_KEY) {
+      headers.set('apikey', SUPABASE_PUBLISHABLE_KEY);
+    }
     if (adminToken) headers.set('x-muiro-session', adminToken);
   } else if (adminToken) {
     // Local Express keeps its existing same-origin Bearer-token contract.

@@ -5,9 +5,16 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  VITE_SUPABASE_URL = "https://apbuobhhaczrruovfkdu.supabase.co"
 
 # Storefront views are query-driven, not pathname routes. Leave unknown paths
 # unmatched so Netlify serves the custom 404.html with a real 404 status.
+
+# Proxy /api requests to the Supabase Edge Function
+[[redirects]]
+  from = "/api/*"
+  to = "https://apbuobhhaczrruovfkdu.supabase.co/functions/v1/muiro-api/api/:splat"
+  status = 200
 
 # Strict MIME type headers for production assets.
 [[headers]]
