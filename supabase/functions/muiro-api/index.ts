@@ -295,14 +295,17 @@ async function loadState() {
   if (row) return row;
   const pin = env("MUIRO_ADMIN_PIN");
   if (!/^\d{6,12}$/.test(pin)) throw new BootstrapError();
-  let seed: AnyRecord = {};
-  try {
-    seed = JSON.parse(
-      await Deno.readTextFile(new URL("./seed.json", import.meta.url)),
-    );
-  } catch (e) {
-    throw new Error("Required sanitized seed.json is unavailable or invalid");
-  }
+  // Embedded minimal seed for bootstrap when seed.json is not bundled
+  const seed: AnyRecord = {
+    products: [],
+    lookbooks: [],
+    categories: [],
+    heroSlides: [],
+    testimonials: [],
+    settings: {},
+    affiliatePrograms: [],
+    merchants: [],
+  };
   const initial = defaultState(seed, await hashPin(pin), pin.length);
   const post = await sb("/rest/v1/muiro_state", {
     method: "POST",
@@ -838,7 +841,7 @@ async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   let path =
     url.pathname
-      .replace(/^\/functions\/v1\/muiro-api/, "")
+      .replace(/^\/muiro-api/, "")
       .replace(/\/$/, "") || "/";
   if (path === "/muiro-api") path = "/";
   const api = path.startsWith("/api/") ? path.slice(4) : path;
@@ -852,9 +855,61 @@ async function handler(req: Request): Promise<Response> {
       return err("Invalid request body", 400);
     }
   }
+  // Public endpoints that don't require authentication
+  // Note: 'api' retains the leading slash from '/api/...' stripping (e.g., '/health')
+  const isPublicGet = method === "GET" && [
+    "/health", "/lookbooks", "/products", "/categories", "/hero-slides", 
+    "/testimonials", "/settings", "/affiliate-programs", "/merchants",
+    "/admin/pin", "/admin/pin-status"
+  ].includes(api);
   if (method === "GET" && api === "/health")
     return json({ status: "ok", time: new Date().toISOString() });
-
+  if (isPublicGet) {
+    // Handle public GET endpoints before any auth checks
+    let row;
+    try {
+      row = await loadState();
+    } catch (e) {
+      if (e instanceof BootstrapError)
+        return err(
+          "Admin bootstrap is not configured. Set MUIRO_ADMIN_PIN in Supabase Function Secrets.",
+          503,
+          { code: "BOOTSTRAP_NOT_CONFIGURED" },
+        );
+      return err("Backend state is unavailable", 503);
+    }
+    let s = row.state as AnyRecord;
+    
+    // Public content endpoints - return public projections
+    if (api === "/affiliate-programs")
+      return json(s.affiliatePrograms || []);
+    if (api === "/merchants") return json(s.merchants || []);
+    if (api === "/categories")
+      return json(deriveCategories(s.products || [], s.categories || [], s.lookbooks || []).map(publicCategory));
+    if (api === "/lookbooks")
+      return json((s.lookbooks || []).map(publicLookbook));
+    if (api === "/products")
+      return json((s.products || []).map(publicProduct));
+    if (api === "/hero-slides")
+      return json(
+        [...(s.heroSlides || [])]
+          .map(publicHeroSlide)
+          .sort(
+            (a: AnyRecord, b: AnyRecord) =>
+              (a.order ?? Number.MAX_SAFE_INTEGER) -
+              (b.order ?? Number.MAX_SAFE_INTEGER),
+          ),
+      );
+    if (api === "/testimonials")
+      return json((s.testimonials || []).map(publicTestimonial));
+    if (api === "/settings")
+      return json(publicSettings(s.settings));
+    if (api === "/admin/pin")
+      return json({ configured: true, length: s.adminPinLength || 0 });
+    if (api === "/admin/pin-status")
+      return json({ configured: true, length: s.adminPinLength || 0 });
+    return err("Not found", 404);
+  }
   // Visitor telemetry is best-effort. Return before durable rate-limit or state
   // reads; work continues in the Edge Runtime background task queue.
   if (method === "POST" && api === "/impression") {
@@ -947,21 +1002,24 @@ async function handler(req: Request): Promise<Response> {
   const publicPost = method === "POST" &&
     ["/admin/verify", "/admin/reset-pin"].includes(api);
   const publicRedirect = method === "GET" && resource === "r" && !!itemId;
-  const requiresAdmin = !publicPost && !publicRedirect && api !== "/health";
-
-  // Reject anonymous calls to protected/unknown paths before reading the
-  // private CMS row. Keep even syntactically supplied sessions bounded by a
-  // durable per-client ceiling before their signature check loads private state.
-  if (requiresAdmin && !token)
-    return err("Authentication required", 401, { code: "NO_SESSION" });
-  if (token && token.length > 2048)
-    return err("Session expired or invalid", 401, { code: "SESSION_INVALID" });
-  if (requiresAdmin && token) {
-    try {
-      if (!(await allowRateRequest(`session:${await clientHash(req)}`, 300, 60)))
-        return err("Too many requests. Please wait a moment.", 429);
-    } catch {
-      return err("Authentication rate-limit service is unavailable", 503);
+  const requiresAdmin = !publicPost && !publicRedirect && !isPublicGet;
+  if (isPublicGet) {
+    // Public GET endpoints skip auth checks
+  } else {
+    // Reject anonymous calls to protected/unknown paths before reading the
+    // private CMS row. Keep even syntactically supplied sessions bounded by a
+    // durable per-client ceiling before their signature check loads private state.
+    if (requiresAdmin && !token)
+      return err("Authentication required", 401, { code: "NO_SESSION" });
+    if (token && token.length > 2048)
+      return err("Session expired or invalid", 401, { code: "SESSION_INVALID" });
+    if (requiresAdmin && token) {
+      try {
+        if (!(await allowRateRequest(`session:${await clientHash(req)}`, 300, 60)))
+          return err("Too many requests. Please wait a moment.", 429);
+      } catch {
+        return err("Authentication rate-limit service is unavailable", 503);
+      }
     }
   }
 

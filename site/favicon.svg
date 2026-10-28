@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="MUIRO">
+  <rect width="64" height="64" rx="12" fill="#F7F5F2"/>
+  <text x="32" y="47" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="47" font-weight="700" letter-spacing="-3" fill="#171416">M</text>
+  <rect x="26" y="53" width="12" height="2.5" rx="1.25" fill="#9B1B36"/>
+</svg>

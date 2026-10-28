@@ -1,0 +1,18 @@
+# MUIRO
+
+> MUIRO is a fashion editorial site featuring outfit lookbooks and curated product links.
+
+## Public site
+
+- [MUIRO](https://muirofashion.netlify.app/): browse fashion lookbooks, outfit ideas, and the products featured in each edit.
+
+## Editorial notes
+
+- Lookbooks connect visual outfit inspiration with product references.
+- Product links may lead to participating retailers; MUIRO does not control retailer pricing, stock, or availability.
+- Confirm current product details on the retailer's own page.
+- The public site is a client-rendered storefront. The homepage is the only sitemap URL until distinct, content-rich static item pages are introduced.
+
+## Scope
+
+This file is a plain-text site guide, not a product feed, inventory source, or guarantee of inclusion in any search or AI answer.
