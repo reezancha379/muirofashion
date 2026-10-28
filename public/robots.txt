@@ -1,7 +1,34 @@
-# Public MUIRO pages are available to search and AI retrieval crawlers.
-# Model-training crawlers are not separately opted out; they follow the wildcard policy.
+# ==========================================
+# AI Search Engine Optimization (AIEO / GEO)
+# ==========================================
+
+# Open crawling pathways to primary processing agents
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# Standard web scraping configuration overrides
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /supabase/
 
+# Point search intelligence systems directly to our pre-rendered roadmap
 Sitemap: https://muirofashion.netlify.app/sitemap.xml
