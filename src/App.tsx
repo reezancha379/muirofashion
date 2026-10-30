@@ -174,7 +174,18 @@ export default function App() {
 
       // Path-based collection deep link: /collection/{id}
       if (pathSegments.length >= 2 && pathSegments[0] === 'collection') {
-        setCurrentView('collections');
+        const productId = pathSegments[1];
+        const found = prods.find(p => p.id === productId);
+        if (found) {
+          setCurrentView('collections');
+          // Scroll to product after a short delay to let the grid render
+          setTimeout(() => {
+            const el = document.getElementById(`product-card-${productId}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 200);
+        } else {
+          setCurrentView('collections');
+        }
       } else if (params.get('view') === 'collections' || params.get('view') === 'shop') {
         setCurrentView('collections');
       }

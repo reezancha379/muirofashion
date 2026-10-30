@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product } from '@/types';
-import { Heart, ExternalLink, ZoomIn, Star } from 'lucide-react';
+import { Heart, ExternalLink, ZoomIn, Star, Link2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { beginAffiliateNavigation } from '@/lib/affiliate';
 
@@ -11,6 +11,13 @@ interface ProductCardProps {
   onToggleSave: (id: string) => void;
   onInspect: (imageSrc: string, alt: string) => void;
   sourceContext?: string;
+}
+
+function copyProductLink(productId: string) {
+  const url = `${window.location.origin}/collection/${productId}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).catch(() => {});
+  }
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -87,6 +94,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             aria-label="Inspect fabric"
           >
             <ZoomIn className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); copyProductLink(product.id); }}
+            className="w-9 h-9 rounded-full bg-white/85 hover:bg-white hover:scale-105 text-[#181512] flex items-center justify-center transition shadow-md backdrop-blur-md opacity-80 group-hover:opacity-100"
+            title="Copy product link"
+            aria-label="Copy product link"
+          >
+            <Link2 className="w-4 h-4" />
           </button>
         </div>
       </div>
