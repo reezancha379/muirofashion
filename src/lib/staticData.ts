@@ -74,7 +74,9 @@ async function snapshotValue<T>(pick: (snap: StaticSnapshot) => T | undefined, e
   const snap = await loadStaticSnapshot();
   const value = snap ? pick(snap) : undefined;
   if (value !== undefined) return value;
-  throw new Error(errorMessage);
+  // Return empty defaults instead of throwing so the storefront renders
+  // with empty state rather than blocking entirely when a field is missing.
+  return (Array.isArray(undefined) ? [] : {}) as T;
 }
 
 export async function readOrSnapshot<T>(

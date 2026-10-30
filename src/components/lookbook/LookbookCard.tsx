@@ -1,12 +1,19 @@
 import React from 'react';
 import { Lookbook, Product } from '@/types';
-import { Sparkles, ArrowUpRight, Eye } from 'lucide-react';
+import { Sparkles, ArrowUpRight, Eye, Link2 } from 'lucide-react';
 
 interface LookbookCardProps {
   look: Lookbook;
   allProducts: Product[];
   onOpenLook: (look: Lookbook) => void;
   onInspect: (src: string, alt: string) => void;
+}
+
+function copyLookbookLink(lookId: string) {
+  const url = `${window.location.origin}/lookbook/${lookId}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).catch(() => {});
+  }
 }
 
 export const LookbookCard: React.FC<LookbookCardProps> = ({
@@ -74,7 +81,15 @@ export const LookbookCard: React.FC<LookbookCardProps> = ({
         </div>
 
         <div className="pt-3 border-t border-[#e8e2dc]/80 flex items-center justify-between">
-          <div />
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); copyLookbookLink(look.id); }}
+            className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-[#6e6761] hover:text-[#181512] transition"
+            title="Copy lookbook link"
+          >
+            <Link2 className="w-3.5 h-3.5" />
+            <span>Share</span>
+          </button>
 
           <button
             onClick={() => onOpenLook(look)}
@@ -87,4 +102,4 @@ export const LookbookCard: React.FC<LookbookCardProps> = ({
       </div>
     </article>
   );
-};
+}

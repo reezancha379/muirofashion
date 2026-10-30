@@ -144,14 +144,40 @@ export default function App() {
       if (st) setSettings(st);
       if (hSlides && hSlides.length > 0) setHeroSlides(hSlides);
 
-      // Check URL query parameters for look
+      // Handle both path-based deep links (/lookbook/{id}, /collection/{id})
+      // and query-based links (?look={id}, ?view=collections)
+      const pathSegments = window.location.pathname.split('/').filter(Boolean);
       const params = new URLSearchParams(window.location.search);
-      const lookParam = params.get('look');
-      if (lookParam) {
-        const found = lbs.find(l => l.id === lookParam);
-        if (found) setActiveLook(found);
+
+      // Path-based lookbook deep link: /lookbook/{id}
+      if (pathSegments.length >= 2 && pathSegments[0] === 'lookbook') {
+        const lookId = pathSegments[1];
+        const found = lbs.find(l => l.id === lookId);
+        if (found) {
+          setActiveLook(found);
+        } else {
+          // Try query param as fallback
+          const lookParam = params.get('look');
+          if (lookParam) {
+            const foundByParam = lbs.find(l => l.id === lookParam);
+            if (foundByParam) setActiveLook(foundByParam);
+          }
+        }
+      } else {
+        // Query-based look parameter
+        const lookParam = params.get('look');
+        if (lookParam) {
+          const found = lbs.find(l => l.id === lookParam);
+          if (found) setActiveLook(found);
+        }
       }
-      if (params.get('view') === 'collections' || params.get('view') === 'shop') setCurrentView('collections');
+
+      // Path-based collection deep link: /collection/{id}
+      if (pathSegments.length >= 2 && pathSegments[0] === 'collection') {
+        setCurrentView('collections');
+      } else if (params.get('view') === 'collections' || params.get('view') === 'shop') {
+        setCurrentView('collections');
+      }
       if (params.get('view') === 'analytics' && sessionStorage.getItem('muiro_admin_auth') === 'true') {
         setCurrentView('analytics');
       }

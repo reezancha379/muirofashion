@@ -1,6 +1,6 @@
 import React from 'react';
 import { Lookbook, Product } from '@/types';
-import { X, ZoomIn, ArrowLeft, Heart, Sparkles } from 'lucide-react';
+import { X, ZoomIn, ArrowLeft, Heart, Sparkles, Link2 } from 'lucide-react';
 import { ProductCard } from '@/components/product/ProductCard';
 import { LookDetailSkeleton } from '@/components/lookbook/LookbookSkeletonGrid';
 
@@ -11,6 +11,13 @@ interface LookDetailModalProps {
   onToggleWishlist: (id: string) => void;
   onClose: () => void;
   onInspect: (src: string, alt: string) => void;
+}
+
+function copyLookbookLink(lookId: string) {
+  const url = `${window.location.origin}/lookbook/${lookId}`;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).catch(() => {});
+  }
 }
 
 export const LookDetailModal: React.FC<LookDetailModalProps> = ({
@@ -46,6 +53,15 @@ export const LookDetailModal: React.FC<LookDetailModalProps> = ({
             </button>
 
             <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => copyLookbookLink(look.id)}
+                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#181512] bg-[#f4efe9] hover:bg-[#e8e2dc] px-3 py-2 rounded-lg transition"
+                title="Copy lookbook share link"
+              >
+                <Link2 className="w-3.5 h-3.5" />
+                <span>Share</span>
+              </button>
               <button
                 onClick={onClose}
                 className="w-9 h-9 rounded-full bg-[#181512] text-white hover:bg-black flex items-center justify-center transition"
