@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import { Lookbook, Product, Testimonial, SiteSettings, HeroSlide } from '@/types';
-import { api, setAdminToken } from '@/lib/api';
+import { api } from '@/lib/api';
 import { beginAffiliateNavigation } from '@/lib/affiliate';
 import { Navbar } from '@/components/layout/Navbar';
 import { Hero } from '@/components/sections/Hero';
@@ -48,7 +48,6 @@ export default function App() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
-  const [publicationPending, setPublicationPending] = useState(false);
 
   // Admin / Owner Security State (Admin is strictly hidden until 6s hold on MUIRO)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -79,6 +78,7 @@ export default function App() {
   const [activeLook, setActiveLook] = useState<Lookbook | null>(null);
   const [inspectorImage, setInspectorImage] = useState<{ src: string; alt: string } | null>(null);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+  const [sharedProductId, setSharedProductId] = useState<string | null>(null);
 
   // Wishlist persisted in localStorage
   const [wishlist, setWishlist] = useState<string[]>(() => {
@@ -104,6 +104,7 @@ export default function App() {
     setIsLoading(true);
     setDataError(null);
     const failedSections: string[] = [];
+    const params = new URLSearchParams(window.location.search);
 
     const safeLoad = async <T,>(label: string, loader: () => Promise<T>, keep: () => T): Promise<T> => {
       try {
@@ -144,51 +145,19 @@ export default function App() {
       if (st) setSettings(st);
       if (hSlides && hSlides.length > 0) setHeroSlides(hSlides);
 
-      // Handle both path-based deep links (/lookbook/{id}, /collection/{id})
-      // and query-based links (?look={id}, ?view=collections)
-      const pathSegments = window.location.pathname.split('/').filter(Boolean);
-      const params = new URLSearchParams(window.location.search);
-
-      // Path-based lookbook deep link: /lookbook/{id}
-      if (pathSegments.length >= 2 && pathSegments[0] === 'lookbook') {
-        const lookId = pathSegments[1];
-        const found = lbs.find(l => l.id === lookId);
-        if (found) {
-          setActiveLook(found);
-        } else {
-          // Try query param as fallback
-          const lookParam = params.get('look');
-          if (lookParam) {
-            const foundByParam = lbs.find(l => l.id === lookParam);
-            if (foundByParam) setActiveLook(foundByParam);
-          }
-        }
-      } else {
-        // Query-based look parameter
-        const lookParam = params.get('look');
-        if (lookParam) {
-          const found = lbs.find(l => l.id === lookParam);
-          if (found) setActiveLook(found);
-        }
+      // Share URLs use query parameters so they work on a static host. The path
+      // form remains supported for previously copied `/lookbook/:id` links.
+      const legacyLookPath = window.location.pathname.match(/^\/lookbook\/([^/]+)\/?$/)?.[1];
+      let pathLookParam: string | null = null;
+      try { pathLookParam = legacyLookPath ? decodeURIComponent(legacyLookPath) : null; } catch { /* Ignore malformed legacy links. */ }
+      const lookParam = params.get('look') || pathLookParam;
+      if (lookParam) {
+        const found = lbs.find(l => l.id === lookParam);
+        if (found) setActiveLook(found);
       }
-
-      // Path-based collection deep link: /collection/{id}
-      if (pathSegments.length >= 2 && pathSegments[0] === 'collection') {
-        const productId = pathSegments[1];
-        const found = prods.find(p => p.id === productId);
-        if (found) {
-          setCurrentView('collections');
-          // Scroll to product after a short delay to let the grid render
-          setTimeout(() => {
-            const el = document.getElementById(`product-card-${productId}`);
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 200);
-        } else {
-          setCurrentView('collections');
-        }
-      } else if (params.get('view') === 'collections' || params.get('view') === 'shop') {
-        setCurrentView('collections');
-      }
+      const productParam = params.get('product');
+      if (params.get('view') === 'collections' || params.get('view') === 'shop' || productParam) setCurrentView('collections');
+      if (productParam) setSharedProductId(productParam);
       if (params.get('view') === 'analytics' && sessionStorage.getItem('muiro_admin_auth') === 'true') {
         setCurrentView('analytics');
       }
@@ -218,6 +187,13 @@ export default function App() {
     api.recordImpression();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (currentView !== 'collections' || !sharedProductId || products.length === 0) return;
+    requestAnimationFrame(() => {
+      document.getElementById(`product-card-${sharedProductId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }, [currentView, sharedProductId, products]);
 
   const handleToggleWishlist = (id: string) => {
     setWishlist(prev => {
@@ -259,8 +235,6 @@ export default function App() {
   };
 
   const handleLockAdmin = () => {
-    setPublicationPending(false);
-    setAdminToken(null);
     try {
       sessionStorage.removeItem('muiro_admin_auth');
     } catch {}
@@ -295,17 +269,11 @@ export default function App() {
       setAuthModalTarget(null);
       setCurrentView('home');
     };
-    const onPublicationPending = () => setPublicationPending(true);
-    const onPublicationSynced = () => setPublicationPending(false);
     window.addEventListener('muiro:unauthorized', onUnauthorized);
-    window.addEventListener('muiro:publication-pending', onPublicationPending);
-    window.addEventListener('muiro:publication-synced', onPublicationSynced);
 
     return () => {
       cancelled = true;
       window.removeEventListener('muiro:unauthorized', onUnauthorized);
-      window.removeEventListener('muiro:publication-pending', onPublicationPending);
-      window.removeEventListener('muiro:publication-synced', onPublicationSynced);
     };
   }, []);
 
@@ -419,7 +387,7 @@ export default function App() {
     lookbooks.length > 0 || products.length > 0 || testimonials.length > 0 || heroSlides.length > 0;
 
   return (
-    <div className="min-h-screen bg-paper text-ink font-casual selection:bg-crimson selection:text-white flex flex-col justify-between">
+    <div className="min-h-screen bg-white text-[#181512] font-casual selection:bg-[#181512] selection:text-white flex flex-col justify-between">
       {/* Top Navbar with Search, Filter & Secret MUIRO Hold Gateway */}
       <Navbar
         currentView={currentView}
@@ -445,15 +413,6 @@ export default function App() {
         }}
         activeFilterCount={activeFilterCount}
       />
-
-      {publicationPending && isAdminAuthenticated && (
-        <div role="status" aria-live="polite" className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-plum/20 border-l-4 border-l-crimson bg-white px-4 py-3 text-sm text-plum shadow-sm">
-            <p className="leading-snug">Your changes are saved in Supabase, but the public storefront rebuild is still pending. Check the Netlify build hook or trigger a deploy manually.</p>
-            <button type="button" onClick={() => setPublicationPending(false)} className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-crimson hover:bg-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-crimson">Dismiss</button>
-          </div>
-        </div>
-      )}
 
       <main className="flex-1">
         {/* Error / partial-refresh banner. Shown whenever a reload could not
@@ -974,8 +933,8 @@ export default function App() {
             </div>
           </div>
 
-          <div className="pt-8 text-center text-[11px] text-[#6B6569] leading-relaxed">
-            If you make a purchase through one of our links, MUIRO may earn a small commission at no extra cost to you.
+          <div className="pt-8 text-center text-[11px] text-[#8c827a] leading-relaxed">
+            A quiet note from MUIRO: some of the pieces you discover here are linked to our retail partners. If you choose to shop through one of those links, we may receive a small commission — at no extra cost to you.
           </div>
         </div>
       </footer>

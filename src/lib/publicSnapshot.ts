@@ -1,5 +1,27 @@
 type AnyRecord = Record<string, any>;
 
+const REQUIRED_PUBLIC_COLLECTIONS = ['products', 'lookbooks', 'heroSlides', 'testimonials'] as const;
+const REQUIRED_STOREFRONT_COLLECTIONS = ['products', 'lookbooks', 'heroSlides'] as const;
+
+/** Reject incomplete remote/seed payloads before projection can hide missing arrays. */
+export function validatePublicSnapshotShape(source: unknown): asserts source is AnyRecord {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) {
+    throw new Error('Public snapshot is incomplete: expected a JSON object. Check that the published content-snapshot.json is a complete snapshot.');
+  }
+
+  const snapshot = source as AnyRecord;
+  for (const collection of REQUIRED_PUBLIC_COLLECTIONS) {
+    if (!Array.isArray(snapshot[collection])) {
+      throw new Error(`Public snapshot is incomplete: required collection "${collection}" must be an array. Republish a complete public content snapshot.`);
+    }
+  }
+  for (const collection of REQUIRED_STOREFRONT_COLLECTIONS) {
+    if (snapshot[collection].length === 0) {
+      throw new Error(`Public snapshot is incomplete: storefront collection "${collection}" is empty. Add at least one ${collection === 'heroSlides' ? 'hero slide' : collection.slice(0, -1)} and republish.`);
+    }
+  }
+}
+
 const TRUSTED_AFFILIATE_DOMAINS = [
   'amazon.com', 'amzn.to', 'revolve.com', 'nordstrom.com', 'asos.com', 'zara.com',
   'target.com', 'shopbop.com', 'farfetch.com', 'ssense.com', 'net-a-porter.com',
@@ -64,51 +86,29 @@ function optimizeBundledHeroPath(value: unknown): unknown {
   return value.replace(/^\/(hero-[1-4])\.jpg$/i, '/$1.webp');
 }
 
-function categorySlug(value: unknown): string {
-  return String(value || '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'category';
-}
-
 function projectCategories(source: AnyRecord, products: AnyRecord[], lookbooks: AnyRecord[]): AnyRecord[] {
-  const categories: AnyRecord[] = [];
-  const names = new Set<string>();
-  const slugs = new Set<string>();
-  const epoch = new Date(0).toISOString();
-  const add = (value: AnyRecord) => {
-    const name = String(value?.name || '').trim().slice(0, 60);
-    if (!name || names.has(name.toLocaleLowerCase())) return;
-    const base = categorySlug(name);
-    const candidate = String(value?.slug || base).trim().toLowerCase();
-    const safeCandidate = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(candidate) ? candidate : base;
-    let slug = safeCandidate;
-    let suffix = 2;
-    while (slugs.has(slug)) slug = `${safeCandidate}-${suffix++}`;
-    const createdAt = typeof value?.createdAt === 'string' ? value.createdAt.slice(0, 40) : epoch;
-    categories.push({
-      id: String(value?.id || `category-${slug}`).slice(0, 100),
-      name,
-      slug,
-      description: String(value?.description || '').trim().slice(0, 300),
-      createdAt,
-      updatedAt: typeof value?.updatedAt === 'string' ? value.updatedAt.slice(0, 40) : createdAt,
-    });
-    names.add(name.toLocaleLowerCase());
-    slugs.add(slug);
-  };
-
-  if (Array.isArray(source?.categories)) {
-    for (const category of source.categories) {
-      if (category && typeof category === 'object' && !Array.isArray(category)) add(category);
-    }
-  }
-  for (const label of [...products.map(product => product.category), ...lookbooks.map(lookbook => lookbook.category)]) {
+  const existing = Array.isArray(source?.categories) ? source.categories : [];
+  const categories = existing.map((item: AnyRecord) => pick(item, [
+    'id', 'name', 'slug', 'description', 'createdAt', 'updatedAt',
+  ]));
+  const names = new Set(categories.map((item: AnyRecord) => String(item.name || '').trim().toLowerCase()));
+  const slugs = new Set(categories.map((item: AnyRecord) => String(item.slug || '')));
+  const labels = [
+    ...products.map((product: AnyRecord) => product.category),
+    ...lookbooks.map((lookbook: AnyRecord) => lookbook.category),
+  ];
+  for (const label of labels) {
     const name = String(label || '').trim();
-    if (name && !names.has(name.toLocaleLowerCase())) add({ name });
+    const key = name.toLowerCase();
+    if (!name || names.has(key)) continue;
+    const base = name.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'category';
+    let slug = base;
+    let suffix = 2;
+    while (slugs.has(slug)) slug = `${base}-${suffix++}`;
+    const timestamp = new Date(0).toISOString();
+    categories.push({ id: `category-${slug}`, name, slug, description: '', createdAt: timestamp, updatedAt: timestamp });
+    names.add(key);
+    slugs.add(slug);
   }
   return categories;
 }
@@ -119,20 +119,27 @@ export function projectPublicSnapshot(source: AnyRecord): AnyRecord {
   const testimonials = Array.isArray(source?.testimonials) ? source.testimonials : [];
   const heroSlides = Array.isArray(source?.heroSlides) ? source.heroSlides : [];
   const settings = source?.settings && typeof source.settings === 'object' ? source.settings : {};
+  const productIds = new Set(products.map((item: AnyRecord) => String(item?.id ?? '')));
 
   return {
-    lookbooks: lookbooks.map((item: AnyRecord) => ({
-      ...pick(item, [
-        'id', 'title', 'board', 'category', 'cover', 'frame', 'description', 'pieces',
-        'featured', 'isNewlyAdded', 'isTrending', 'authorNote', 'season',
-        'seoTitle', 'seoDescription', 'seoKeywords',
-      ]),
-      ...(item.videoUrl ? { videoUrl: safeMediaUrl(item.videoUrl) } : {}),
-      ...(item.videoCaptionsUrl ? { videoCaptionsUrl: safeMediaUrl(item.videoCaptionsUrl) } : {}),
-      pieceCovers: safePieceCoverMap(item),
-      views: 0,
-      likes: 0,
-    })),
+    lookbooks: lookbooks.map((item: AnyRecord) => {
+      const pieces = (Array.isArray(item?.pieces) ? item.pieces : [])
+        .filter((pieceId: unknown) => productIds.has(String(pieceId)))
+        .map((pieceId: unknown) => String(pieceId));
+      return {
+        ...pick(item, [
+          'id', 'title', 'board', 'category', 'cover', 'frame', 'description', 'pieces',
+          'featured', 'isNewlyAdded', 'isTrending', 'authorNote', 'season',
+          'seoTitle', 'seoDescription', 'seoKeywords',
+        ]),
+        pieces,
+        ...(item.videoUrl ? { videoUrl: safeMediaUrl(item.videoUrl) } : {}),
+        ...(item.videoCaptionsUrl ? { videoCaptionsUrl: safeMediaUrl(item.videoCaptionsUrl) } : {}),
+        pieceCovers: safePieceCoverMap({ ...item, pieces }),
+        views: 0,
+        likes: 0,
+      };
+    }),
     products: products.map((item: AnyRecord) => ({
       ...pick(item, [
         'id', 'title', 'price', 'numericPrice', 'board', 'category', 'image', 'imageAlt', 'description',

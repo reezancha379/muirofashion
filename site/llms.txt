@@ -1,5 +1,7 @@
 # MUIRO
 
+> Also known as MuiroFashion.
+
 > MUIRO is a fashion editorial site featuring outfit lookbooks and curated product links.
 
 ## Public site

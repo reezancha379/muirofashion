@@ -1,6 +1,3 @@
-# Serve content-snapshot.json directly (not caught by SPA routing)
-/content-snapshot.json  /content-snapshot.json  200
-
-# Deep-link lookbook URLs to the SPA shell so React Router can handle them
+# Preserve legacy deep links; the static builder serves the app shell at the site root.
 /lookbook/*  /index.html  200
 /collection/*  /index.html  200

@@ -17,6 +17,7 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const siteDir = path.join(root, '..', 'site');
 const PORT = 4173;
 const BASE = `http://127.0.0.1:${PORT}`;
+const configuredOrigin = (process.env.PUBLIC_SITE_ORIGIN || '').trim().replace(/\/$/, '');
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -43,7 +44,8 @@ function startStaticServer(): Promise<http.Server> {
   const server = http.createServer((req, res) => {
     const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
     let status = 200;
-    let filePath = urlPath === '/' ? path.join(siteDir, 'index.html') : path.join(siteDir, urlPath);
+    const isLookbookDeepLink = /^\/lookbook\/[^/]+\/?$/.test(urlPath);
+    let filePath = urlPath === '/' || isLookbookDeepLink ? path.join(siteDir, 'index.html') : path.join(siteDir, urlPath);
     if (!filePath.startsWith(siteDir) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
       filePath = path.join(siteDir, '404.html');
       status = 404;
@@ -74,25 +76,24 @@ const localStoragePolyfill = {
 };
 (globalThis as unknown as { sessionStorage: typeof sessionStoragePolyfill }).sessionStorage = sessionStoragePolyfill;
 (globalThis as unknown as { localStorage: typeof localStoragePolyfill }).localStorage = localStoragePolyfill;
+const browserLocation = { href: BASE + '/', origin: BASE, search: '', pathname: '/' };
 (globalThis as unknown as { window: unknown }).window = {
   dispatchEvent: (): boolean => true,
   addEventListener: (): void => {},
   removeEventListener: (): void => {},
   open: (): null => null,
-  location: { href: BASE + '/', origin: BASE, search: '', pathname: '/' },
+  location: browserLocation,
   scrollTo: (): void => {}
 };
 const observedRequests: string[] = [];
 (globalThis as typeof globalThis & { __MUIRO_STATIC_PUBLIC__?: boolean }).__MUIRO_STATIC_PUBLIC__ = true;
 
-// Node's fetch needs absolute URLs; the browser resolves both '/abs' and
-// './rel' against the page origin. Mirror that so the client code under test
-// keeps working exactly as it does in the browser (the app fetches the
-// snapshot with a relative './content-snapshot.json' path).
+// Node's fetch needs absolute URLs; mirror browser URL resolution against the
+// current page so deep-link requests expose accidental relative references.
 const nativeFetch = globalThis.fetch.bind(globalThis) as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 (globalThis as unknown as { fetch: typeof nativeFetch }).fetch = (input, init) => {
   const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-  const resolved = new URL(raw, BASE + '/');
+  const resolved = new URL(raw, browserLocation.href);
   observedRequests.push(resolved.pathname);
   return nativeFetch(resolved.href, init);
 };
@@ -117,42 +118,61 @@ async function main(): Promise<void> {
     const canonical = (html.match(/<link rel="canonical" href="([^"]+)"/) || [])[1];
     mark(/<title>MUIRO<\/title>/.test(html), 'browser tab title is exactly MUIRO');
     const metaDescription = (html.match(/<meta name="description" content="([^"]+)"/) || [])[1];
-    mark(canonical === 'https://muirofashion.netlify.app/' && !!metaDescription, 'homepage ships a canonical URL and descriptive metadata in initial HTML');
-    mark(html.includes('property="og:url"') && html.includes('twitter:card') && html.includes('"@type": "WebSite"'), 'social preview tags and WebSite structured data are present');
-    mark(/<noscript>[\s\S]*?<h1>MUIRO Fashion Lookbooks<\/h1>[\s\S]*?<\/noscript>/.test(html), 'initial HTML includes a useful no-JavaScript editorial fallback');
+    const expectedCanonical = configuredOrigin ? `${configuredOrigin}/` : undefined;
+    mark((configuredOrigin ? canonical === expectedCanonical : !canonical) && !!metaDescription, 'homepage has descriptive initial metadata and only emits canonical after origin configuration');
+    mark(/MUIRO/.test(metaDescription || '') && /MuiroFashion/.test(metaDescription || ''), 'meta description identifies both MUIRO and MuiroFashion');
+    mark((configuredOrigin ? html.includes(`property="og:url" content="${expectedCanonical}"`) : !html.includes('property="og:url"')) && html.includes('twitter:card') && html.includes('"@type": "WebSite"'), 'social previews and WebSite structured data are present without guessed URLs');
+    mark(html.includes('"alternateName": "MuiroFashion"'), 'structured data declares MuiroFashion as the alternate brand name');
+    mark(/<noscript>[\s\S]*?<h1>MUIRO Fashion Lookbooks<\/h1>[\s\S]*?MuiroFashion[\s\S]*?<\/noscript>/.test(html), 'initial HTML includes a useful no-JavaScript brand and editorial summary');
     const robots = await nativeFetch(`${BASE}/robots.txt`);
     const robotsText = await robots.text();
-    mark(robots.status === 200 && robotsText.includes('Disallow: /api/') && robotsText.includes('https://muirofashion.netlify.app/sitemap.xml'), `robots.txt -> HTTP ${robots.status}, public crawling plus sitemap reference`);
+    mark(robots.status === 200 && robotsText.includes('Disallow: /api/') && (configuredOrigin ? robotsText.includes(`Sitemap: ${configuredOrigin}/sitemap.xml`) : !robotsText.includes('Sitemap:')), `robots.txt -> HTTP ${robots.status}, public crawl policy and origin-aware sitemap reference`);
     const sitemap = await nativeFetch(`${BASE}/sitemap.xml`);
     const sitemapText = await sitemap.text();
-    mark(sitemap.status === 200 && sitemapText.includes('<loc>https://muirofashion.netlify.app/</loc>'), `sitemap.xml -> HTTP ${sitemap.status}, canonical homepage only`);
+    mark(configuredOrigin ? sitemap.status === 200 && sitemapText.includes(`<loc>${configuredOrigin}/</loc>`) : sitemap.status === 404, `sitemap.xml -> HTTP ${sitemap.status}, emitted only for a configured public origin`);
     const llms = await nativeFetch(`${BASE}/llms.txt`);
-    mark(llms.status === 200 && (await llms.text()).includes('# MUIRO'), `llms.txt -> HTTP ${llms.status}, factual public-site guide`);
-    // The build uses base './' for drag-and-drop/Netlify compat, so the module
-    // reference may be absolute (`/assets/…`) or relative (`./assets/…`).
-    const jsRef = (html.match(/<script[^>]*src="((?:\/|\.\/)assets\/[^"]+\.js)"/) || [])[1];
-    mark(!!jsRef, `index.html references hashed module ${jsRef}`);
+    const llmsText = await llms.text();
+    mark(llms.status === 200 && llmsText.includes('# MUIRO') && llmsText.includes('MuiroFashion'), `llms.txt -> HTTP ${llms.status}, factual guide with both brand names`);
+    const deepLink = `${BASE}/lookbook/look-1`;
+    const deepResponse = await nativeFetch(deepLink);
+    const deepHtml = await deepResponse.text();
+    mark(deepResponse.status === 200 && /<div id="root"><\/div>/.test(deepHtml), '/lookbook/:id is rewritten to the app shell');
+    const jsRef = (deepHtml.match(/<script[^>]*src="(\/assets\/[^\"]+\.js)"/) || [])[1];
+    mark(!!jsRef, `index.html references root-based hashed module ${jsRef}`);
+    mark(/href="\/assets\/[^"]+\.css"/.test(deepHtml), 'stylesheet reference is rooted at the site origin');
+    mark(/href="\/fonts\/fonts\.css"/.test(deepHtml), 'font stylesheet reference is rooted at the site origin');
+    mark(/href="\/favicon\.svg"/.test(deepHtml), 'favicon reference is rooted at the site origin');
 
     if (jsRef) {
-      const jsUrl = jsRef.replace(/^\.\//, '');
-      const js = await nativeFetch(`${BASE}/${jsUrl}`);
-      mark((js.headers.get('content-type') || '').includes('javascript'), `module script served as [${js.headers.get('content-type')}] (strict MIME OK)`);
-      const cssRef = (html.match(/href="((?:\/|\.\/)assets\/[^"]+\.css)"/) || [])[1];
-      const cssUrl = (cssRef || '').replace(/^\.\//, '');
-      const css = await nativeFetch(`${BASE}/${cssUrl}`);
+      const deepUrl = new URL(deepLink);
+      const jsUrl = new URL(jsRef, deepUrl);
+      const js = await nativeFetch(jsUrl.href);
+      mark(jsUrl.pathname.startsWith('/assets/') && (js.headers.get('content-type') || '').includes('javascript'), `deep-link module resolved to ${jsUrl.pathname} and served as [${js.headers.get('content-type')}]`);
+      const cssRef = (deepHtml.match(/href="(\/assets\/[^"]+\.css)"/) || [])[1];
+      const cssUrl = new URL(cssRef || '', deepUrl);
+      const css = await nativeFetch(cssUrl.href);
       mark((css.headers.get('content-type') || '').includes('text/css'), `stylesheet served as [${css.headers.get('content-type')}]`);
-      const fav = await nativeFetch(`${BASE}/favicon.svg`);
+      mark(cssUrl.pathname.startsWith('/assets/'), `deep-link stylesheet resolved to ${cssUrl.pathname}`);
+      const faviconUrl = new URL('/favicon.svg', deepUrl);
+      const fav = await nativeFetch(faviconUrl.href);
       const fav32 = await nativeFetch(`${BASE}/favicon-32.png`);
       const apple = await nativeFetch(`${BASE}/apple-touch-icon.png`);
-      mark(fav.status === 200 && fav32.status === 200 && apple.status === 200, `M favicon set -> SVG ${fav.status}, 32px ${fav32.status}, touch ${apple.status}`);
-      const font = await nativeFetch(`${BASE}/fonts/fonts.css`);
+      mark(faviconUrl.pathname === '/favicon.svg' && fav.status === 200 && fav32.status === 200 && apple.status === 200, `M favicon set -> SVG ${fav.status}, 32px ${fav32.status}, touch ${apple.status}`);
+      const fontUrl = new URL('/fonts/fonts.css', deepUrl);
+      const font = await nativeFetch(fontUrl.href);
       const fontBody = await font.text();
-      mark(font.status === 200 && fontBody.includes('@font-face'), `self-hosted fonts -> HTTP ${font.status} (${(fontBody.match(/@font-face/g) || []).length} faces, no googleapis request)`);
-      const snap = await nativeFetch(`${BASE}/content-snapshot.json`);
-      mark(snap.status === 200, `content-snapshot.json -> HTTP ${snap.status}`);
+      const fontRef = (fontBody.match(/url\(([^)]+\.woff2)\)/) || [])[1]?.replace(/["']/g, '');
+      const fontAssetUrl = fontRef ? new URL(fontRef, fontUrl) : null;
+      const fontAsset = fontAssetUrl ? await nativeFetch(fontAssetUrl.href) : null;
+      mark(font.status === 200 && fontBody.includes('@font-face') && !!fontAsset && fontAsset.status === 200 && !!fontAssetUrl && fontAssetUrl.pathname.startsWith('/fonts/'), `self-hosted font CSS and WOFF2 resolve from root (CSS ${font.status}, font ${fontAsset?.status})`);
+      const snapshotUrl = new URL('/content-snapshot.json', deepUrl);
+      const snap = await nativeFetch(snapshotUrl.href);
+      mark(snap.status === 200 && snapshotUrl.pathname === '/content-snapshot.json', `deep-link content-snapshot.json -> HTTP ${snap.status} from the site root`);
     }
 
     console.log('\n=== B. real client code reads content with NO backend ===\n');
+    browserLocation.href = deepLink;
+    browserLocation.pathname = '/lookbook/look-1';
     const mod = await import('../src/lib/api');
     const api = mod.api;
 
@@ -176,6 +196,7 @@ async function main(): Promise<void> {
 
     const settings = await api.getSettings();
     mark(typeof settings.aboutTitle === 'string' && settings.aboutTitle.length > 0, `getSettings() -> "${settings.aboutTitle}"`);
+    mark(observedRequests.includes('/content-snapshot.json') && !observedRequests.includes('/lookbook/content-snapshot.json'), 'client snapshot fetch remains rooted while the browser is on /lookbook/:id');
 
     const snapshotData = JSON.parse(fs.readFileSync(path.join(siteDir, 'content-snapshot.json'), 'utf-8'));
     mark(!['stats', 'affiliatePrograms', 'merchants', 'clicks', 'impressions'].some((key) => key in snapshotData), 'public snapshot excludes analytics and admin-only collections');

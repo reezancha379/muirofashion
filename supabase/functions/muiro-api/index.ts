@@ -364,8 +364,12 @@ function safeMediaUrl(value: unknown): string | undefined {
     throw new Error("Invalid media URL");
   return url.toString();
 }
-function publicPieceCovers(value: AnyRecord) {
-  const pieces = new Set(Array.isArray(value?.pieces) ? value.pieces : []);
+function publicPieceCovers(value: AnyRecord, validProductIds?: Set<string>) {
+  const pieces = new Set(
+    (Array.isArray(value?.pieces) ? value.pieces : [])
+      .filter((productId: unknown) => typeof productId === "string")
+      .filter((productId: string) => !validProductIds || validProductIds.has(productId)),
+  );
   const covers = value?.pieceCovers;
   if (!covers || typeof covers !== "object" || Array.isArray(covers)) return {};
   return Object.fromEntries(Object.entries(covers).flatMap(([productId, url]) => {
@@ -458,16 +462,21 @@ function publicProduct(value: AnyRecord) {
     clicks: 0,
   };
 }
-function publicLookbook(value: AnyRecord) {
+function publicLookbook(value: AnyRecord, products: AnyRecord[] = []) {
+  const validProductIds = new Set(products.map((product) => String(product.id)));
+  const pieces = (Array.isArray(value?.pieces) ? value.pieces : [])
+    .filter((productId: unknown) => typeof productId === "string")
+    .filter((productId: string) => validProductIds.has(productId));
   return {
     ...pickPublicFields(value, [
       "id", "title", "board", "category", "cover", "frame", "description",
-      "pieces", "featured", "isNewlyAdded", "isTrending",
+      "featured", "isNewlyAdded", "isTrending",
       "authorNote", "season", "seoTitle", "seoDescription", "seoKeywords",
     ]),
     ...(value.videoUrl ? { videoUrl: safeMediaUrl(value.videoUrl) } : {}),
     ...(value.videoCaptionsUrl ? { videoCaptionsUrl: safeMediaUrl(value.videoCaptionsUrl) } : {}),
-    pieceCovers: publicPieceCovers(value),
+    pieces,
+    pieceCovers: publicPieceCovers({ ...value, pieces }, validProductIds),
     views: 0,
     likes: 0,
   };
@@ -500,9 +509,10 @@ function publicSettings(value: AnyRecord) {
   };
 }
 function publicContent(s: AnyRecord) {
+  const products = Array.isArray(s.products) ? s.products : [];
   return {
-    lookbooks: (s.lookbooks || []).map(publicLookbook),
-    products: (s.products || []).map(publicProduct),
+    lookbooks: (s.lookbooks || []).map((lookbook: AnyRecord) => publicLookbook(lookbook, products)),
+    products: products.map(publicProduct),
     categories: deriveCategories(s.products || [], s.categories || [], s.lookbooks || []).map(publicCategory),
     testimonials: (s.testimonials || []).map(publicTestimonial),
     heroSlides: (s.heroSlides || []).map(publicHeroSlide),
@@ -859,12 +869,12 @@ async function handler(req: Request): Promise<Response> {
   // Note: 'api' retains the leading slash from '/api/...' stripping (e.g., '/health')
   const isPublicGet = method === "GET" && [
     "/health", "/lookbooks", "/products", "/categories", "/hero-slides", 
-    "/testimonials", "/settings", "/affiliate-programs", "/merchants",
+    "/testimonials", "/settings",
     "/admin/pin", "/admin/pin-status"
   ].includes(api);
   if (method === "GET" && api === "/health")
     return json({ status: "ok", time: new Date().toISOString() });
-  if (isPublicGet) {
+  if (false && isPublicGet) {
     // Handle public GET endpoints before any auth checks
     let row;
     try {
@@ -881,13 +891,10 @@ async function handler(req: Request): Promise<Response> {
     let s = row.state as AnyRecord;
     
     // Public content endpoints - return public projections
-    if (api === "/affiliate-programs")
-      return json(s.affiliatePrograms || []);
-    if (api === "/merchants") return json(s.merchants || []);
     if (api === "/categories")
       return json(deriveCategories(s.products || [], s.categories || [], s.lookbooks || []).map(publicCategory));
     if (api === "/lookbooks")
-      return json((s.lookbooks || []).map(publicLookbook));
+      return json((s.lookbooks || []).map((lookbook: AnyRecord) => publicLookbook(lookbook, s.products || [])));
     if (api === "/products")
       return json((s.products || []).map(publicProduct));
     if (api === "/hero-slides")
@@ -1149,7 +1156,7 @@ async function handler(req: Request): Promise<Response> {
     return json(
       ownerSession
         ? s.lookbooks || []
-        : (s.lookbooks || []).map(publicLookbook),
+        : (s.lookbooks || []).map((lookbook: AnyRecord) => publicLookbook(lookbook, s.products || [])),
     );
   if (method === "GET" && api === "/products")
     return json(
@@ -1654,7 +1661,8 @@ async function handler(req: Request): Promise<Response> {
     try { safeVideoUrl = safeMediaUrl(videoUrl); } catch { return err("Video URL must be a valid http(s) URL", 400); }
     try { safeVideoCaptionsUrl = safeMediaUrl(videoCaptionsUrl); } catch { return err("Video captions URL must be a valid http(s) URL", 400); }
     const selectedPieceIds = Array.isArray(pieces)
-      ? pieces.filter((productId: unknown) => typeof productId === "string" && s.products.some((product: AnyRecord) => product.id === productId))
+      ? pieces.filter((productId: unknown, index: number, list: unknown[]) =>
+        typeof productId === "string" && list.indexOf(productId) === index && s.products.some((product: AnyRecord) => product.id === productId))
       : [];
     const safePieceCovers: Record<string, string> = {};
     if (pieceCovers !== undefined && (!pieceCovers || typeof pieceCovers !== "object" || Array.isArray(pieceCovers)))
@@ -1675,7 +1683,7 @@ async function handler(req: Request): Promise<Response> {
       frame: "2-3",
       description: description || "",
       authorNote: authorNote || "",
-      pieces: Array.isArray(pieces) ? pieces : [],
+      pieces: selectedPieceIds,
       pieceCovers: safePieceCovers,
       views: 0,
       likes: 0,
@@ -1708,6 +1716,14 @@ async function handler(req: Request): Promise<Response> {
     if (Object.hasOwn(upd, "videoCaptionsUrl")) {
       try { upd.videoCaptionsUrl = safeMediaUrl(upd.videoCaptionsUrl) || ""; } catch { return err("Video captions URL must be a valid http(s) URL", 400); }
     }
+    if (Object.hasOwn(upd, "pieces")) {
+      if (!Array.isArray(upd.pieces)) return err("Lookbook pieces must be an array", 400);
+      upd.pieces = upd.pieces
+        .filter((productId: unknown) => typeof productId === "string")
+        .filter((productId: string, index: number, list: string[]) =>
+          list.indexOf(productId) === index && s.products.some((product: AnyRecord) => product.id === productId)
+        );
+    }
     if (Object.hasOwn(upd, "pieceCovers")) {
       const existing = s.lookbooks.find((look: AnyRecord) => look.id === itemId);
       const selectedPieces = Array.isArray(upd.pieces) ? upd.pieces : existing?.pieces || [];
@@ -1722,6 +1738,12 @@ async function handler(req: Request): Promise<Response> {
         } catch { return err("Piece cover must be a valid http(s) URL", 400); }
       }
       upd.pieceCovers = safePieceCovers;
+    } else if (Object.hasOwn(upd, "pieces")) {
+      const existing = s.lookbooks.find((look: AnyRecord) => look.id === itemId);
+      const selectedPieces = new Set(upd.pieces as string[]);
+      upd.pieceCovers = Object.fromEntries(
+        Object.entries(existing?.pieceCovers || {}).filter(([productId]) => selectedPieces.has(productId)),
+      );
     }
     if (Object.hasOwn(upd, "seoTitle")) upd.seoTitle = String(upd.seoTitle || "").slice(0, 70);
     if (Object.hasOwn(upd, "seoDescription")) upd.seoDescription = String(upd.seoDescription || "").slice(0, 180);

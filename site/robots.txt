@@ -31,4 +31,5 @@ Disallow: /api/
 Disallow: /supabase/
 
 # Point search intelligence systems directly to our pre-rendered roadmap
+
 Sitemap: https://muirofashion.netlify.app/sitemap.xml
